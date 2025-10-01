@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
-import { GraduationCap, ChevronDown, User, Users, Shield, LogIn } from "lucide-react"
+import { GraduationCap, ChevronDown, User, Users, Shield, LogIn, AlertCircle } from "lucide-react"
+import { useAuth } from "@/components/auth/auth-provider"
 
 interface LoginFormProps {
   showBackground?: boolean
@@ -23,7 +24,9 @@ export function LoginForm({ showBackground = false, className = "" }: LoginFormP
   const [password, setPassword] = useState('')
   const [selectedRole, setSelectedRole] = useState<'student' | 'teacher' | 'admin'>('student')
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
   const router = useRouter()
+  const { login } = useAuth()
 
   const roles = [
     { value: 'student', label: 'Student', icon: User, color: 'text-cyan-400' },
@@ -34,31 +37,22 @@ export function LoginForm({ showBackground = false, className = "" }: LoginFormP
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError('')
 
-    // Mock login delay
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    // Store user data in localStorage (mock auth)
-    const userData = {
-      id: '1',
-      name: email.split('@')[0],
-      email,
-      role: selectedRole
-    }
-
-    localStorage.setItem('auth', JSON.stringify({
-      user: userData,
-      isAuthenticated: true
-    }))
-
-    setIsLoading(false)
-    // Redirect to role-specific dashboard
-    if (selectedRole === 'teacher') {
-      router.push('/dashboard/teacher')
-    } else if (selectedRole === 'admin') {
-      router.push('/dashboard/admin')
-    } else {
-      router.push('/dashboard')
+    try {
+      const result = await login(email, password, selectedRole)
+      
+      if (result.success) {
+        // Redirect to the URL provided by the backend
+        router.push(result.redirect_url || '/dashboard')
+      } else {
+        setError(result.error || 'Login failed')
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      setError('Network error - please check if the server is running on port 5000')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -92,6 +86,14 @@ export function LoginForm({ showBackground = false, className = "" }: LoginFormP
         </CardHeader>
         
         <CardContent className="space-y-4">
+          {/* Error Message */}
+          {error && (
+            <div className={`flex items-center space-x-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 ${showBackground ? 'backdrop-blur-md' : ''}`}>
+              <AlertCircle className="w-4 h-4 text-red-500" />
+              <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
+            </div>
+          )}
+          
           <form onSubmit={handleLogin} className="space-y-4">
             {/* Role Selection */}
             <div className="space-y-2">
@@ -181,11 +183,12 @@ export function LoginForm({ showBackground = false, className = "" }: LoginFormP
 
           {/* Demo Credentials */}
           <div className={`mt-6 p-4 glassmorphic rounded-lg border border-white/10 ${showBackground ? 'backdrop-blur-md' : ''}`}>
-            <h4 className="text-sm font-medium text-foreground mb-2">Demo Credentials</h4>
+            <h4 className="text-sm font-medium text-foreground mb-2">Test Credentials</h4>
             <div className="space-y-1 text-xs text-muted-foreground">
-              <p>Email: demo@elms.edu</p>
-              <p>Password: Any password will work</p>
-              <p>Select any role to explore the system</p>
+              <p><strong>Student:</strong> sakib221131@bscse.uiu.ac.bd</p>
+              <p><strong>Teacher:</strong> sarah.johnson@uiu.ac.bd</p>
+              <p><strong>Admin:</strong> admin.aminul@uiu.ac.bd</p>
+              <p><strong>Password:</strong> password123 (for all accounts)</p>
             </div>
           </div>
         </CardContent>

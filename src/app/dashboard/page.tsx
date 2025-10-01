@@ -24,7 +24,8 @@ import {
   mockChatMessages, 
   mockCalendarEvents 
 } from "@/lib/mock-data"
-import { User } from "@/types"
+import { useAuth } from "@/components/auth/auth-provider"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 import { 
   LogOut, 
   Settings, 
@@ -41,27 +42,19 @@ import {
  * Mobile: Converts to tabbed interface
  */
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null)
   const [selectedCourse, setSelectedCourse] = useState<string>('')
   const [isMobile, setIsMobile] = useState(false)
   const [mobileTab, setMobileTab] = useState('courses')
   const router = useRouter()
+  const { user, logout, isAuthenticated } = useAuth()
 
   useEffect(() => {
     // Check authentication
-    const authData = localStorage.getItem('auth')
-    if (!authData) {
-      router.push('/')
+    if (!isAuthenticated || !user) {
+      router.push('/login')
       return
     }
 
-    const auth = JSON.parse(authData)
-    if (!auth.isAuthenticated) {
-      router.push('/')
-      return
-    }
-
-    setUser(auth.user)
     setSelectedCourse(mockCourses[0]?.id || '')
 
     // Check if mobile
@@ -72,11 +65,11 @@ export default function DashboardPage() {
     checkMobile()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
-  }, [router])
+  }, [router, isAuthenticated, user])
 
-  const handleLogout = () => {
-    localStorage.removeItem('auth')
-    router.push('/')
+  const handleLogout = async () => {
+    await logout()
+    router.push('/login')
   }
 
   const handleCourseSelect = (courseId: string) => {
@@ -100,7 +93,8 @@ export default function DashboardPage() {
   // Mobile Layout
   if (isMobile) {
     return (
-      <div className="min-h-screen">
+      <ProtectedRoute requiredRole="student">
+        <div className="min-h-screen">
         {/* Mobile Header */}
         <header className="glassmorphic border-b border-white/10 p-4">
           <div className="flex items-center justify-between">
@@ -193,12 +187,14 @@ export default function DashboardPage() {
           </TabsContent>
         </Tabs>
       </div>
+      </ProtectedRoute>
     )
   }
 
   // Desktop Layout
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <ProtectedRoute requiredRole="student">
+      <div className="h-screen flex flex-col overflow-hidden">
       {/* Desktop Header */}
       <header className="glassmorphic border-b border-white/10 p-4 flex-shrink-0">
         <div className="flex items-center justify-between">
@@ -305,5 +301,6 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   )
 }
