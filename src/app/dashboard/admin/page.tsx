@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 // AlertDialog component not available, using window.confirm
 import { ThemeToggle } from "@/components/theme-toggle"
-import { User } from "@/types"
+import { useAuth } from "@/components/auth/auth-provider"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 import { 
   LogOut, 
   Settings, 
@@ -79,33 +80,16 @@ const mockStudents = [
   { id: '4', name: 'David Wilson', email: 'david@student.elms.edu', courses: 3, section: 'CSE-401-B' }
 ]
 
-export default function AdminDashboardPage() {
-  const [user, setUser] = useState<User | null>(null)
+function AdminDashboardContent() {
   const [newCourseName, setNewCourseName] = useState('')
   const [newSectionName, setNewSectionName] = useState('')
   const [selectedCourse, setSelectedCourse] = useState('')
   const router = useRouter()
+  const { user, logout } = useAuth()
 
-  useEffect(() => {
-    // Check authentication
-    const authData = localStorage.getItem('auth')
-    if (!authData) {
-      router.push('/')
-      return
-    }
-
-    const auth = JSON.parse(authData)
-    if (!auth.isAuthenticated || auth.user.role !== 'admin') {
-      router.push('/')
-      return
-    }
-
-    setUser(auth.user)
-  }, [router])
-
-  const handleLogout = () => {
-    localStorage.removeItem('auth')
-    router.push('/')
+  const handleLogout = async () => {
+    await logout()
+    router.push('/login')
   }
 
   const handleCreateCourse = (e: React.FormEvent) => {
@@ -120,16 +104,7 @@ export default function AdminDashboardPage() {
     setNewSectionName('')
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center space-x-2">
-          <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          <span className="text-foreground">Loading...</span>
-        </div>
-      </div>
-    )
-  }
+
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
@@ -157,7 +132,7 @@ export default function AdminDashboardPage() {
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar className="h-10 w-10">
                     <AvatarFallback className="bg-gradient-to-br from-red-500/20 to-orange-500/20 text-red-400">
-                      {user.name.charAt(0).toUpperCase()}
+                      {user?.name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -165,7 +140,7 @@ export default function AdminDashboardPage() {
               <DropdownMenuContent className="glassmorphic" align="end">
                 <DropdownMenuItem>
                   <UserIcon className="mr-2 h-4 w-4" />
-                  <span>{user.name}</span>
+                  <span>{user?.name}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Settings className="mr-2 h-4 w-4" />
@@ -515,5 +490,13 @@ export default function AdminDashboardPage() {
         </Tabs>
       </div>
     </div>
+  )
+}
+
+export default function AdminDashboardPage() {
+  return (
+    <ProtectedRoute requiredRole="admin">
+      <AdminDashboardContent />
+    </ProtectedRoute>
   )
 }

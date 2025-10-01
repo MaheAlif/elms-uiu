@@ -96,15 +96,23 @@ class ApiClient {
   }
 
   async logout(): Promise<ApiResponse> {
-    const response = await this.request('/auth/logout', {
-      method: 'POST',
-    });
-
-    // Clear local storage regardless of API response
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-
-    return response;
+    try {
+      const response = await this.request('/auth/logout', {
+        method: 'POST',
+      });
+      return response;
+    } catch (error) {
+      console.error('Logout error:', error);
+      return { success: false, error: 'Logout failed' };
+    } finally {
+      // Always clear local storage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        // Clear any other auth-related data
+        localStorage.removeItem('auth');
+      }
+    }
   }
 
   async getSession(): Promise<ApiResponse> {

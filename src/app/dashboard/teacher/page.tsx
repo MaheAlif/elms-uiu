@@ -17,7 +17,8 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { User } from "@/types"
+import { useAuth } from "@/components/auth/auth-provider"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 import { 
   LogOut, 
   Settings, 
@@ -61,35 +62,21 @@ const mockTeacherCourses = [
   }
 ]
 
-export default function TeacherDashboardPage() {
-  const [user, setUser] = useState<User | null>(null)
+function TeacherDashboardContent() {
   const [selectedCourse, setSelectedCourse] = useState<string>('')
   const [materialTitle, setMaterialTitle] = useState('')
   const [materialDescription, setMaterialDescription] = useState('')
   const [materialLink, setMaterialLink] = useState('')
   const router = useRouter()
+  const { user, logout } = useAuth()
 
   useEffect(() => {
-    // Check authentication
-    const authData = localStorage.getItem('auth')
-    if (!authData) {
-      router.push('/')
-      return
-    }
-
-    const auth = JSON.parse(authData)
-    if (!auth.isAuthenticated || auth.user.role !== 'teacher') {
-      router.push('/')
-      return
-    }
-
-    setUser(auth.user)
     setSelectedCourse(mockTeacherCourses[0]?.id || '')
-  }, [router])
+  }, [])
 
-  const handleLogout = () => {
-    localStorage.removeItem('auth')
-    router.push('/')
+  const handleLogout = async () => {
+    await logout()
+    router.push('/login')
   }
 
   const handleMaterialUpload = (e: React.FormEvent) => {
@@ -102,16 +89,7 @@ export default function TeacherDashboardPage() {
     setMaterialLink('')
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center space-x-2">
-          <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          <span className="text-foreground">Loading...</span>
-        </div>
-      </div>
-    )
-  }
+
 
   const selectedCourseData = mockTeacherCourses.find(course => course.id === selectedCourse)
 
@@ -125,7 +103,7 @@ export default function TeacherDashboardPage() {
               <GraduationCap className="w-8 h-8 text-cyan-400" />
               <div>
                 <h1 className="text-xl font-bold text-foreground">Teacher Dashboard</h1>
-                <p className="text-sm text-muted-foreground">Welcome back, {user.name}</p>
+                <p className="text-sm text-muted-foreground">Welcome back, {user?.name}</p>
               </div>
             </div>
           </div>
@@ -141,7 +119,7 @@ export default function TeacherDashboardPage() {
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar className="h-10 w-10">
                     <AvatarFallback className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-400">
-                      {user.name.charAt(0).toUpperCase()}
+                      {user?.name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -149,7 +127,7 @@ export default function TeacherDashboardPage() {
               <DropdownMenuContent className="glassmorphic" align="end">
                 <DropdownMenuItem>
                   <UserIcon className="mr-2 h-4 w-4" />
-                  <span>{user.name}</span>
+                  <span>{user?.name}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Settings className="mr-2 h-4 w-4" />
@@ -377,5 +355,13 @@ export default function TeacherDashboardPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function TeacherDashboardPage() {
+  return (
+    <ProtectedRoute requiredRole="teacher">
+      <TeacherDashboardContent />
+    </ProtectedRoute>
   )
 }

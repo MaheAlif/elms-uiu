@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Badge } from "@/components/ui/badge"
 import { GraduationCap, ChevronDown, User, Users, Shield, LogIn, AlertCircle } from "lucide-react"
 import { useAuth } from "@/components/auth/auth-provider"
+import Link from "next/link"
 
 interface LoginFormProps {
   showBackground?: boolean
@@ -180,6 +181,16 @@ export function LoginForm({ showBackground = false, className = "" }: LoginFormP
               )}
             </Button>
           </form>
+
+          {/* Registration Link */}
+          <div className="text-center pt-4">
+            <p className="text-sm text-muted-foreground">
+              Don't have an account?{' '}
+              <Link href="/register" className="text-cyan-400 hover:text-cyan-300 transition-colors font-medium">
+                Create account
+              </Link>
+            </p>
+          </div>
 
           {/* Demo Credentials */}
           <div className={`mt-6 p-4 glassmorphic rounded-lg border border-white/10 ${showBackground ? 'backdrop-blur-md' : ''}`}>

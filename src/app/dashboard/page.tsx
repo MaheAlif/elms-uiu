@@ -93,7 +93,7 @@ export default function DashboardPage() {
   // Mobile Layout
   if (isMobile) {
     return (
-      <ProtectedRoute requiredRole="student">
+      <ProtectedRoute>
         <div className="min-h-screen">
         {/* Mobile Header */}
         <header className="glassmorphic border-b border-white/10 p-4">
@@ -193,7 +193,7 @@ export default function DashboardPage() {
 
   // Desktop Layout
   return (
-    <ProtectedRoute requiredRole="student">
+    <ProtectedRoute>
       <div className="h-screen flex flex-col overflow-hidden">
       {/* Desktop Header */}
       <header className="glassmorphic border-b border-white/10 p-4 flex-shrink-0">
