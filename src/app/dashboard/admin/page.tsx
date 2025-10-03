@@ -896,7 +896,7 @@ function AdminDashboardContent() {
                 {selectedTeacherProfile.courses && selectedTeacherProfile.courses.length > 0 ? (
                   <div className="space-y-3">
                     {selectedTeacherProfile.courses.map((course: any) => (
-                      <div key={course.id} className="p-4 border rounded-lg">
+                      <div key={course.id} className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                         <div className="flex justify-between items-start">
                           <div>
                             <h5 className="font-medium">{course.course_name}</h5>
@@ -952,7 +952,7 @@ function AdminDashboardContent() {
                 {selectedStudentProfile.courses && selectedStudentProfile.courses.length > 0 ? (
                   <div className="space-y-3">
                     {selectedStudentProfile.courses.map((course: any) => (
-                      <div key={course.id} className="p-4 border rounded-lg">
+                      <div key={course.id} className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                         <div className="flex justify-between items-start">
                           <div>
                             <h5 className="font-medium">{course.course_name}</h5>
@@ -988,7 +988,7 @@ function AdminDashboardContent() {
           </DialogHeader>
           {selectedCourseDetails && (
             <div className="space-y-6">
-              <div className="p-4 border rounded-lg">
+              <div className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <h3 className="text-xl font-semibold">{selectedCourseDetails.course.course_name}</h3>
@@ -1007,8 +1007,8 @@ function AdminDashboardContent() {
               <div>
                 <h4 className="font-semibold mb-3">Enrolled Students ({selectedCourseDetails.students?.length || 0})</h4>
                 {selectedCourseDetails.students && selectedCourseDetails.students.length > 0 ? (
-                  <div className="border rounded-lg">
-                    <div className="grid grid-cols-4 gap-4 p-3 border-b font-medium text-sm bg-muted/50">
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800">
+                    <div className="grid grid-cols-4 gap-4 p-3 border-b border-gray-200 dark:border-gray-600 font-medium text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                       <div>Name</div>
                       <div>Email</div>
                       <div>Enrolled Date</div>
@@ -1016,7 +1016,7 @@ function AdminDashboardContent() {
                     </div>
                     <div className="max-h-96 overflow-y-auto">
                       {selectedCourseDetails.students.map((student: any) => (
-                        <div key={student.id} className="grid grid-cols-4 gap-4 p-3 border-b last:border-b-0 text-sm">
+                        <div key={student.id} className="grid grid-cols-4 gap-4 p-3 border-b border-gray-200 dark:border-gray-600 last:border-b-0 text-sm text-gray-900 dark:text-gray-100">
                           <div className="flex items-center space-x-3">
                             <Avatar className="h-8 w-8">
                               <AvatarFallback className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-cyan-400 text-xs">
