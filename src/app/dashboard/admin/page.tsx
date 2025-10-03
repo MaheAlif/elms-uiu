@@ -16,9 +16,11 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel
 } from "@/components/ui/dropdown-menu"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/components/auth/auth-provider"
 import { ProtectedRoute } from "@/components/auth/protected-route"
+import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api"
 import type { Course, User, Teacher, AdminStats } from "@/types"
 import { 
@@ -38,7 +40,9 @@ import {
   UserCheck,
   UserX,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Eye,
+  Mail
 } from "lucide-react"
 
 function AdminDashboardContent() {
@@ -62,8 +66,17 @@ function AdminDashboardContent() {
   const [selectedCourseId, setSelectedCourseId] = useState('')
   const [selectedStudentId, setSelectedStudentId] = useState('')
 
+  // Modal states
+  const [teacherModalOpen, setTeacherModalOpen] = useState(false)
+  const [studentModalOpen, setStudentModalOpen] = useState(false)
+  const [courseModalOpen, setCourseModalOpen] = useState(false)
+  const [selectedTeacherProfile, setSelectedTeacherProfile] = useState<any>(null)
+  const [selectedStudentProfile, setSelectedStudentProfile] = useState<any>(null)
+  const [selectedCourseDetails, setSelectedCourseDetails] = useState<any>(null)
+
   const router = useRouter()
   const { user, logout } = useAuth()
+  const { toast } = useToast()
 
   // Load data on component mount
   useEffect(() => {
@@ -131,6 +144,73 @@ function AdminDashboardContent() {
     router.push('/login')
   }
 
+  // Profile and detail view handlers
+  const handleViewTeacherProfile = async (teacherId: string) => {
+    try {
+      const response = await apiClient.getTeacherProfile(teacherId)
+      if (response.success) {
+        setSelectedTeacherProfile(response.data)
+        setTeacherModalOpen(true)
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load teacher profile",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load teacher profile",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleViewStudentProfile = async (studentId: string) => {
+    try {
+      const response = await apiClient.getStudentProfile(studentId)
+      if (response.success) {
+        setSelectedStudentProfile(response.data)
+        setStudentModalOpen(true)
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load student profile",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load student profile",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleViewCourseDetails = async (courseId: string) => {
+    try {
+      const response = await apiClient.getCourseDetails(courseId)
+      if (response.success) {
+        setSelectedCourseDetails(response.data)
+        setCourseModalOpen(true)
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load course details",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load course details",
+        variant: "destructive"
+      })
+    }
+  }
+
   const handleCreateCourse = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
@@ -145,9 +225,24 @@ function AdminDashboardContent() {
           academic_year: '2024-2025'
         })
         loadAdminData() // Reload data
+        toast({
+          title: "Success",
+          description: "Course created successfully!",
+          variant: "success"
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to create course",
+          variant: "destructive"
+        })
       }
     } catch (error) {
-      console.error('Failed to create course:', error)
+      toast({
+        title: "Error",
+        description: "Failed to create course",
+        variant: "destructive"
+      })
     }
   }
 
@@ -157,9 +252,24 @@ function AdminDashboardContent() {
         const response = await apiClient.deleteAdminCourse(courseId.toString())
         if (response.success) {
           loadAdminData() // Reload data
+          toast({
+            title: "Success",
+            description: "Course deleted successfully!",
+            variant: "success"
+          })
+        } else {
+          toast({
+            title: "Error",
+            description: response.message || "Failed to delete course",
+            variant: "destructive"
+          })
         }
       } catch (error) {
-        console.error('Failed to delete course:', error)
+        toast({
+          title: "Error",
+          description: "Failed to delete course",
+          variant: "destructive"
+        })
       }
     }
   }
@@ -174,9 +284,24 @@ function AdminDashboardContent() {
         setSelectedTeacherId('')
         setSelectedCourseId('')
         loadAdminData() // Reload data
+        toast({
+          title: "Success",
+          description: "Teacher assigned to course successfully!",
+          variant: "success"
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to assign teacher",
+          variant: "destructive"
+        })
       }
     } catch (error) {
-      console.error('Failed to assign teacher:', error)
+      toast({
+        title: "Error",
+        description: "Failed to assign teacher",
+        variant: "destructive"
+      })
     }
   }
 
@@ -190,9 +315,24 @@ function AdminDashboardContent() {
         setSelectedStudentId('')
         setSelectedCourseId('')
         loadAdminData() // Reload data
+        toast({
+          title: "Success",
+          description: "Student enrolled successfully!",
+          variant: "success"
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to enroll student",
+          variant: "destructive"
+        })
       }
     } catch (error) {
-      console.error('Failed to enroll student:', error)
+      toast({
+        title: "Error",
+        description: "Failed to enroll student",
+        variant: "destructive"
+      })
     }
   }
 
@@ -467,6 +607,14 @@ function AdminDashboardContent() {
                           <Button 
                             variant="ghost" 
                             size="sm" 
+                            className="glassmorphic hover:glow-blue"
+                            onClick={() => handleViewCourseDetails(course.id.toString())}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
                             className="glassmorphic hover:glow-red"
                             onClick={() => handleDeleteCourse(course.id)}
                           >
@@ -590,6 +738,14 @@ function AdminDashboardContent() {
                         <div className="text-right text-sm text-muted-foreground">
                           <p>{teacher.course_count || 0} courses</p>
                         </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleViewTeacherProfile(teacher.id.toString())}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   )) : (
@@ -689,6 +845,14 @@ function AdminDashboardContent() {
                           <p>Role: {student.role}</p>
                           <p>ID: {student.id}</p>
                         </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleViewStudentProfile(student.id.toString())}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   )) : (
@@ -700,6 +864,191 @@ function AdminDashboardContent() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Teacher Profile Modal */}
+      <Dialog open={teacherModalOpen} onOpenChange={setTeacherModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Teacher Profile</DialogTitle>
+          </DialogHeader>
+          {selectedTeacherProfile && (
+            <div className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarFallback className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-400 text-lg">
+                    {selectedTeacherProfile.teacher.name.split(' ').map((n: string) => n[0]).join('')}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-xl font-semibold">{selectedTeacherProfile.teacher.name}</h3>
+                  <p className="text-muted-foreground flex items-center">
+                    <Mail className="h-4 w-4 mr-2" />
+                    {selectedTeacherProfile.teacher.email}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Member since: {new Date(selectedTeacherProfile.teacher.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold mb-3">Assigned Courses ({selectedTeacherProfile.courses?.length || 0})</h4>
+                {selectedTeacherProfile.courses && selectedTeacherProfile.courses.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedTeacherProfile.courses.map((course: any) => (
+                      <div key={course.id} className="p-4 border rounded-lg">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h5 className="font-medium">{course.course_name}</h5>
+                            <p className="text-sm text-muted-foreground">{course.course_code}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{course.description}</p>
+                          </div>
+                          <div className="text-right text-sm">
+                            <p>{course.credits} credits</p>
+                            <p>{course.semester} {course.academic_year}</p>
+                            <Badge variant="outline">{course.student_count} students</Badge>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No courses assigned</p>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Student Profile Modal */}
+      <Dialog open={studentModalOpen} onOpenChange={setStudentModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Student Profile</DialogTitle>
+          </DialogHeader>
+          {selectedStudentProfile && (
+            <div className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarFallback className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-cyan-400 text-lg">
+                    {selectedStudentProfile.student.name.split(' ').map((n: string) => n[0]).join('')}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-xl font-semibold">{selectedStudentProfile.student.name}</h3>
+                  <p className="text-muted-foreground flex items-center">
+                    <Mail className="h-4 w-4 mr-2" />
+                    {selectedStudentProfile.student.email}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Member since: {new Date(selectedStudentProfile.student.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold mb-3">Enrolled Courses ({selectedStudentProfile.courses?.length || 0})</h4>
+                {selectedStudentProfile.courses && selectedStudentProfile.courses.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedStudentProfile.courses.map((course: any) => (
+                      <div key={course.id} className="p-4 border rounded-lg">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h5 className="font-medium">{course.course_name}</h5>
+                            <p className="text-sm text-muted-foreground">{course.course_code}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{course.description}</p>
+                            {course.teacher_name && (
+                              <p className="text-xs text-muted-foreground">Teacher: {course.teacher_name}</p>
+                            )}
+                          </div>
+                          <div className="text-right text-sm">
+                            <p>{course.credits} credits</p>
+                            <p>{course.semester} {course.academic_year}</p>
+                            <p className="text-xs">Enrolled: {new Date(course.enrolled_at).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No courses enrolled</p>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Course Details Modal */}
+      <Dialog open={courseModalOpen} onOpenChange={setCourseModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Course Details</DialogTitle>
+          </DialogHeader>
+          {selectedCourseDetails && (
+            <div className="space-y-6">
+              <div className="p-4 border rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-xl font-semibold">{selectedCourseDetails.course.course_name}</h3>
+                    <p className="text-muted-foreground">{selectedCourseDetails.course.course_code}</p>
+                    <p className="text-sm mt-2">{selectedCourseDetails.course.description}</p>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <p><span className="font-medium">Credits:</span> {selectedCourseDetails.course.credits}</p>
+                    <p><span className="font-medium">Semester:</span> {selectedCourseDetails.course.semester} {selectedCourseDetails.course.academic_year}</p>
+                    <p><span className="font-medium">Teacher:</span> {selectedCourseDetails.course.teacher_name || 'Not assigned'}</p>
+                    <p><span className="font-medium">Created:</span> {new Date(selectedCourseDetails.course.created_at).toLocaleDateString()}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold mb-3">Enrolled Students ({selectedCourseDetails.students?.length || 0})</h4>
+                {selectedCourseDetails.students && selectedCourseDetails.students.length > 0 ? (
+                  <div className="border rounded-lg">
+                    <div className="grid grid-cols-4 gap-4 p-3 border-b font-medium text-sm bg-muted/50">
+                      <div>Name</div>
+                      <div>Email</div>
+                      <div>Enrolled Date</div>
+                      <div>Actions</div>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
+                      {selectedCourseDetails.students.map((student: any) => (
+                        <div key={student.id} className="grid grid-cols-4 gap-4 p-3 border-b last:border-b-0 text-sm">
+                          <div className="flex items-center space-x-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-cyan-400 text-xs">
+                                {student.name.split(' ').map((n: string) => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{student.name}</span>
+                          </div>
+                          <div>{student.email}</div>
+                          <div>{new Date(student.enrolled_at).toLocaleDateString()}</div>
+                          <div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleViewStudentProfile(student.id.toString())}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No students enrolled</p>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

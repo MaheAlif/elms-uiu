@@ -255,6 +255,19 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Profile and detail view endpoints
+  async getTeacherProfile(teacherId: string): Promise<ApiResponse> {
+    return this.request(`/admin/teachers/${teacherId}/profile`);
+  }
+
+  async getStudentProfile(studentId: string): Promise<ApiResponse> {
+    return this.request(`/admin/students/${studentId}/profile`);
+  }
+
+  async getCourseDetails(courseId: string): Promise<ApiResponse> {
+    return this.request(`/admin/courses/${courseId}/details`);
+  }
 }
 
 export const apiClient = new ApiClient();
