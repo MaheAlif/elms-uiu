@@ -167,8 +167,93 @@ class ApiClient {
     return this.request('/admin/stats');
   }
 
-  async getAllUsers(): Promise<ApiResponse> {
-    return this.request('/admin/users');
+  async getAllUsers(params?: { role?: string; search?: string; page?: number; limit?: number }): Promise<ApiResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.role) searchParams.append('role', params.role);
+    if (params?.search) searchParams.append('search', params.search);
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    
+    const endpoint = searchParams.toString() ? `/admin/users?${searchParams}` : '/admin/users';
+    return this.request(endpoint);
+  }
+
+  async getAdminCourses(params?: { page?: number; limit?: number }): Promise<ApiResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    
+    const endpoint = searchParams.toString() ? `/admin/courses?${searchParams}` : '/admin/courses';
+    return this.request(endpoint);
+  }
+
+  async createAdminCourse(courseData: {
+    course_name: string;
+    course_code: string;
+    description: string;
+    credits: number;
+    semester: string;
+    academic_year: string;
+  }): Promise<ApiResponse> {
+    return this.request('/admin/courses', {
+      method: 'POST',
+      body: JSON.stringify(courseData),
+    });
+  }
+
+  async updateAdminCourse(courseId: string, courseData: {
+    course_name?: string;
+    course_code?: string;
+    description?: string;
+    credits?: number;
+    semester?: string;
+    academic_year?: string;
+  }): Promise<ApiResponse> {
+    return this.request(`/admin/courses/${courseId}`, {
+      method: 'PUT',
+      body: JSON.stringify(courseData),
+    });
+  }
+
+  async deleteAdminCourse(courseId: string): Promise<ApiResponse> {
+    return this.request(`/admin/courses/${courseId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getTeachers(): Promise<ApiResponse> {
+    return this.request('/admin/teachers');
+  }
+
+  async assignTeacher(teacherId: string, courseId: string): Promise<ApiResponse> {
+    return this.request('/admin/assign-teacher', {
+      method: 'POST',
+      body: JSON.stringify({ teacher_id: teacherId, course_id: courseId }),
+    });
+  }
+
+  async unassignTeacher(teacherId: string, courseId: string): Promise<ApiResponse> {
+    return this.request('/admin/assign-teacher', {
+      method: 'DELETE',
+      body: JSON.stringify({ teacher_id: teacherId, course_id: courseId }),
+    });
+  }
+
+  async enrollStudent(studentId: string, courseId: string, sectionId?: string): Promise<ApiResponse> {
+    return this.request('/admin/enrollments', {
+      method: 'POST',
+      body: JSON.stringify({ student_id: studentId, course_id: courseId, section_id: sectionId }),
+    });
+  }
+
+  async getCourseEnrollments(courseId: string): Promise<ApiResponse> {
+    return this.request(`/admin/enrollments/${courseId}`);
+  }
+
+  async removeEnrollment(enrollmentId: string): Promise<ApiResponse> {
+    return this.request(`/admin/enrollments/${enrollmentId}`, {
+      method: 'DELETE',
+    });
   }
 }
 
