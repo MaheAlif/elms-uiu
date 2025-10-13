@@ -15,17 +15,17 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle"
 import { CourseList } from "@/components/course-list"
 import { MaterialList } from "@/components/material-list"
+import { AssignmentList } from "@/components/assignment-list-simple"
 import { ChatbotPanel } from "@/components/chatbot-panel"
 import { CalendarPanel } from "@/components/calendar-panel"
 import { ClassChatPanel } from "@/components/class-chat-panel"
 import { 
-  mockCourses, 
-  mockMaterials, 
   mockChatMessages, 
   mockCalendarEvents 
 } from "@/lib/mock-data"
 import { useAuth } from "@/components/auth/auth-provider"
 import { ProtectedRoute } from "@/components/auth/protected-route"
+import { apiClient } from "@/lib/api"
 import { 
   LogOut, 
   Settings, 
@@ -45,6 +45,10 @@ export default function DashboardPage() {
   const [selectedCourse, setSelectedCourse] = useState<string>('')
   const [isMobile, setIsMobile] = useState(false)
   const [mobileTab, setMobileTab] = useState('courses')
+  const [courses, setCourses] = useState([])
+  const [materials, setMaterials] = useState([])
+  const [assignments, setAssignments] = useState([])
+  const [loading, setLoading] = useState(true)
   const router = useRouter()
   const { user, logout, isAuthenticated } = useAuth()
 
@@ -55,7 +59,8 @@ export default function DashboardPage() {
       return
     }
 
-    setSelectedCourse(mockCourses[0]?.id || '')
+    // Load student data
+    loadStudentData()
 
     // Check if mobile
     const checkMobile = () => {
@@ -66,6 +71,41 @@ export default function DashboardPage() {
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [router, isAuthenticated, user])
+
+  const loadStudentData = async () => {
+    if (!user || user.role !== 'student') return
+    
+    try {
+      setLoading(true)
+      
+      // Load student courses
+      const coursesResponse = await apiClient.getStudentCourses()
+      if (coursesResponse.success && coursesResponse.data) {
+        const coursesData = (coursesResponse.data as any)?.courses || []
+        setCourses(coursesData)
+        setSelectedCourse(coursesData[0]?.id?.toString() || '')
+      }
+      
+      // Load materials for all courses
+      const materialsResponse = await apiClient.getStudentMaterials()
+      if (materialsResponse.success && materialsResponse.data) {
+        const materialsData = (materialsResponse.data as any)?.materials || []
+        setMaterials(materialsData)
+      }
+
+      // Load assignments for all courses
+      const assignmentsResponse = await apiClient.getStudentAssignments()
+      if (assignmentsResponse.success && assignmentsResponse.data) {
+        const assignmentsData = (assignmentsResponse.data as any)?.assignments || []
+        setAssignments(assignmentsData)
+      }
+      
+    } catch (error) {
+      console.error('Failed to load student data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleLogout = async () => {
     await logout()
@@ -137,20 +177,29 @@ export default function DashboardPage() {
           <TabsList className="grid w-full grid-cols-4 glassmorphic m-2">
             <TabsTrigger value="courses">Courses</TabsTrigger>
             <TabsTrigger value="materials">Materials</TabsTrigger>
+            <TabsTrigger value="assignments">Assignments</TabsTrigger>
             <TabsTrigger value="chat">Chat</TabsTrigger>
             <TabsTrigger value="more">More</TabsTrigger>
           </TabsList>
           
           <TabsContent value="courses" className="h-full mt-0">
             <CourseList 
-              courses={mockCourses} 
+              courses={courses} 
               selectedCourseId={selectedCourse}
               onCourseSelect={handleCourseSelect}
             />
           </TabsContent>
           
           <TabsContent value="materials" className="h-full mt-0">
-            <MaterialList materials={mockMaterials} courseId={selectedCourse} />
+            <MaterialList materials={materials} courseId={selectedCourse} />
+          </TabsContent>
+
+          <TabsContent value="assignments" className="h-full mt-0">
+            <AssignmentList 
+              assignments={assignments} 
+              courseId={selectedCourse} 
+              onSubmissionSuccess={() => loadStudentData()}
+            />
           </TabsContent>
           
           <TabsContent value="chat" className="h-full mt-0">
@@ -245,15 +294,44 @@ export default function DashboardPage() {
         {/* Left Column - Course List (3/12 = 25%) */}
         <div className="w-1/4 border-r border-white/10 glassmorphic flex flex-col overflow-hidden">
           <CourseList 
-            courses={mockCourses} 
+            courses={courses} 
             selectedCourseId={selectedCourse}
             onCourseSelect={handleCourseSelect}
           />
         </div>
 
-        {/* Middle Column - Materials (5/12 = ~42%) */}
+        {/* Middle Column - Materials & Assignments Tabs (5/12 = ~42%) */}
         <div className="flex-1 border-r border-white/10 flex flex-col overflow-hidden">
-          <MaterialList materials={mockMaterials} courseId={selectedCourse} />
+          <Tabs defaultValue="materials" className="flex flex-col h-full">
+            <TabsList className="grid grid-cols-2 w-full p-1 glassmorphic flex-shrink-0 rounded-none border-b border-white/10">
+              <TabsTrigger 
+                value="materials"
+                className="glassmorphic hover:glow-blue data-[state=active]:glow-blue transition-all duration-200"
+              >
+                📄 Materials
+              </TabsTrigger>
+              <TabsTrigger 
+                value="assignments"
+                className="glassmorphic hover:glow-green data-[state=active]:glow-green transition-all duration-200"
+              >
+                📝 Assignments
+              </TabsTrigger>
+            </TabsList>
+            
+            <div className="flex-1 overflow-hidden">
+              <TabsContent value="materials" className="h-full m-0">
+                <MaterialList materials={materials} courseId={selectedCourse} />
+              </TabsContent>
+              
+              <TabsContent value="assignments" className="h-full m-0">
+                <AssignmentList 
+                  assignments={assignments} 
+                  courseId={selectedCourse} 
+                  onSubmissionSuccess={() => loadStudentData()}
+                />
+              </TabsContent>
+            </div>
+          </Tabs>
         </div>
 
         {/* Right Column - Horizontal Navbar Tabs (4/12 = 33%) */}

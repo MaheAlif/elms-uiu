@@ -1,14 +1,26 @@
 "use client"
 
-import { Material } from '@/types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { FileText, FileSpreadsheet, FileImage, Video, Download, Calendar, Clock } from "lucide-react"
+import { FileText, FileSpreadsheet, FileImage, Video, Download, Calendar, Clock, BookOpen } from "lucide-react"
+
+interface StudentMaterial {
+  id: number
+  title: string
+  type: string
+  file_path: string
+  size: string
+  upload_date: string
+  course_name: string
+  course_code: string
+  course_id: number
+  uploaded_by?: string
+}
 
 interface MaterialListProps {
-  materials: Material[]
+  materials: StudentMaterial[]
   courseId?: string
 }
 
@@ -18,7 +30,7 @@ interface MaterialListProps {
  */
 export function MaterialList({ materials, courseId }: MaterialListProps) {
   const filteredMaterials = courseId 
-    ? materials.filter(material => material.courseId === courseId)
+    ? materials.filter(material => material.course_id.toString() === courseId)
     : materials
 
   const getFileIcon = (type: string) => {
@@ -87,15 +99,19 @@ export function MaterialList({ materials, courseId }: MaterialListProps) {
                         {material.title}
                       </CardTitle>
                       <CardDescription className="text-xs text-muted-foreground mt-1">
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-4 mb-1">
                           <span className="flex items-center">
                             <Calendar className="w-3 h-3 mr-1" />
-                            {new Date(material.uploadDate).toLocaleDateString()}
+                            {new Date(material.upload_date).toLocaleDateString()}
                           </span>
                           <span className="flex items-center">
                             <Clock className="w-3 h-3 mr-1" />
-                            {material.size}
+                            {material.size || 'Unknown size'}
                           </span>
+                        </div>
+                        <div className="flex items-center">
+                          <BookOpen className="w-3 h-3 mr-1" />
+                          <span>{material.course_code}: {material.course_name}</span>
                         </div>
                       </CardDescription>
                     </div>
@@ -110,13 +126,47 @@ export function MaterialList({ materials, courseId }: MaterialListProps) {
                     variant="outline"
                     size="sm"
                     className="glassmorphic hover:glow-green"
-                    onClick={() => {
-                      // Mock download functionality
-                      if (material.type === 'video') {
-                        window.open(material.url, '_blank')
-                      } else {
-                        // For demo purposes, show alert instead of trying to download non-existent files
-                        alert(`Demo: Would download "${material.title}" (${material.size})`)
+                    onClick={async () => {
+                      try {
+                        const token = localStorage.getItem('token')
+                        if (!token) {
+                          console.error('No auth token found')
+                          return
+                        }
+
+                        const downloadUrl = `http://localhost:5000/api/student/materials/${material.id}/download`
+                        console.log('Downloading:', downloadUrl)
+
+                        const response = await fetch(downloadUrl, {
+                          headers: {
+                            'Authorization': `Bearer ${token}`
+                          }
+                        })
+
+                        if (!response.ok) {
+                          const errorData = await response.json()
+                          console.error('Download failed:', errorData.message)
+                          alert(`Download failed: ${errorData.message}`)
+                          return
+                        }
+
+                        // Get the actual file blob
+                        const blob = await response.blob()
+                        
+                        // Create download link
+                        const url = window.URL.createObjectURL(blob)
+                        const link = document.createElement('a')
+                        link.href = url
+                        link.download = material.title
+                        document.body.appendChild(link)
+                        link.click()
+                        document.body.removeChild(link)
+                        window.URL.revokeObjectURL(url)
+
+                        console.log('Download successful:', material.title)
+                      } catch (error) {
+                        console.error('Download error:', error)
+                        alert('Download failed. Please try again.')
                       }
                     }}
                   >

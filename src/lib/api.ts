@@ -138,7 +138,7 @@ class ApiClient {
   }
 
   async getStudentMaterials(courseId?: string): Promise<ApiResponse> {
-    const endpoint = courseId ? `/student/materials?courseId=${courseId}` : '/student/materials';
+    const endpoint = courseId ? `/student/materials?course_id=${courseId}` : '/student/materials';
     return this.request(endpoint);
   }
 
@@ -148,6 +148,22 @@ class ApiClient {
 
   async getChatMessages(roomId: string): Promise<ApiResponse> {
     return this.request(`/student/chat?roomId=${roomId}`);
+  }
+
+  async getStudentAssignments(courseId?: string): Promise<ApiResponse> {
+    const endpoint = courseId ? `/student/assignments?course_id=${courseId}` : '/student/assignments';
+    return this.request(endpoint);
+  }
+
+  async submitAssignment(assignmentId: string, formData: FormData): Promise<ApiResponse> {
+    const token = this.getToken();
+    return fetch(`${API_BASE_URL}/student/assignments/${assignmentId}/submit`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    }).then(res => res.json());
   }
 
   // Teacher endpoints
