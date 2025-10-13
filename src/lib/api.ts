@@ -242,6 +242,41 @@ class ApiClient {
     });
   }
 
+  async downloadSubmission(submissionId: string): Promise<void> {
+    const token = this.getToken();
+    const url = `${API_BASE_URL}/teacher/submissions/${submissionId}/download`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'submission_file';
+      
+      if (contentDisposition && contentDisposition.includes('filename=')) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+    } else {
+      throw new Error('Failed to download submission');
+    }
+  }
+
   async getTeacherSections(courseId?: string): Promise<ApiResponse> {
     const endpoint = courseId ? `/teacher/sections?course_id=${courseId}` : '/teacher/sections';
     return this.request(endpoint);

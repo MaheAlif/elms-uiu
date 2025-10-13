@@ -300,6 +300,12 @@ export function AssignmentList({ assignments, courseId, onSubmissionSuccess }: A
                       </span>
                     )}
                   </div>
+
+                </div>
+                
+                <div className="flex justify-between items-center mt-4">
+                  <div>
+                  </div>
                   
                   <div className="flex gap-2">
                     {assignment.status === 'submitted' && assignment.submission_file && (
@@ -338,6 +344,7 @@ export function AssignmentList({ assignments, courseId, onSubmissionSuccess }: A
                     <p className="text-muted-foreground mt-1">{assignment.feedback}</p>
                   </div>
                 )}
+
               </CardContent>
             </Card>
           ))}

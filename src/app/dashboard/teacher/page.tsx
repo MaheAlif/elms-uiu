@@ -16,11 +16,13 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/components/auth/auth-provider"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api"
+import { AssignmentSubmissions } from "@/components/assignment-submissions"
 import { 
   LogOut, 
   Settings, 
@@ -69,6 +71,7 @@ function TeacherDashboardContent() {
   const [assignmentDueDate, setAssignmentDueDate] = useState('')
   const [assignmentMarks, setAssignmentMarks] = useState('100')
   const [creatingAssignment, setCreatingAssignment] = useState(false)
+  const [viewingSubmissions, setViewingSubmissions] = useState<string | null>(null)
   const router = useRouter()
   const { user, logout } = useAuth()
   const { toast } = useToast()
@@ -95,7 +98,8 @@ function TeacherDashboardContent() {
       const response = await apiClient.getTeacherCourses()
       
       if (response.success && response.data) {
-        const coursesWithColors = response.data.courses.map((course: any, index: number) => ({
+        const data = response.data as any
+        const coursesWithColors = data.courses.map((course: any, index: number) => ({
           ...course,
           color: courseColors[index % courseColors.length]
         }))
@@ -128,8 +132,9 @@ function TeacherDashboardContent() {
     try {
       const response = await apiClient.getTeacherCourseDetails(courseId)
       if (response.success && response.data) {
-        setCourseDetails(response.data.course)
-        setSections(response.data.sections || [])
+        const data = response.data as any
+        setCourseDetails(data.course)
+        setSections(data.sections || [])
       }
     } catch (error) {
       console.error('Error loading course details:', error)
@@ -140,7 +145,8 @@ function TeacherDashboardContent() {
     try {
       const response = await apiClient.getTeacherMaterials(courseId)
       if (response.success && response.data) {
-        setMaterials(response.data.materials || [])
+        const data = response.data as any
+        setMaterials(data.materials || [])
       }
     } catch (error) {
       console.error('Error loading materials:', error)
@@ -151,7 +157,8 @@ function TeacherDashboardContent() {
     try {
       const response = await apiClient.getTeacherStudents(courseId)
       if (response.success && response.data) {
-        setStudents(response.data.students || [])
+        const data = response.data as any
+        setStudents(data.students || [])
       }
     } catch (error) {
       console.error('Error loading students:', error)
@@ -162,7 +169,8 @@ function TeacherDashboardContent() {
     try {
       const response = await apiClient.getTeacherAssignments(courseId)
       if (response.success && response.data) {
-        setAssignments(response.data.assignments || [])
+        const data = response.data as any
+        setAssignments(data.assignments || [])
       }
     } catch (error) {
       console.error('Error loading assignments:', error)
@@ -173,7 +181,8 @@ function TeacherDashboardContent() {
     try {
       const response = await apiClient.getTeacherSections(courseId)
       if (response.success && response.data) {
-        setSections(response.data.sections || [])
+        const data = response.data as any
+        setSections(data.sections || [])
       }
     } catch (error) {
       console.error('Error loading sections:', error)
@@ -422,7 +431,12 @@ function TeacherDashboardContent() {
 
         {/* Right Panel - Material Management */}
         <div className="flex-1 p-6 overflow-y-auto">
-          {selectedCourseData && (
+          {viewingSubmissions ? (
+            <AssignmentSubmissions 
+              assignmentId={viewingSubmissions}
+              onClose={() => setViewingSubmissions(null)}
+            />
+          ) : selectedCourseData && (
             <>
               <div className="mb-6">
                 <h2 className="text-lg font-semibold text-foreground mb-2">
@@ -783,6 +797,15 @@ function TeacherDashboardContent() {
                                   </div>
                                   
                                   <div className="flex items-center space-x-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setViewingSubmissions(assignment.id.toString())}
+                                      className="glassmorphic hover:glow-blue"
+                                    >
+                                      <Users className="w-4 h-4 mr-1" />
+                                      View Submissions
+                                    </Button>
                                     <Badge 
                                       variant={new Date(assignment.due_date) > new Date() ? "secondary" : "destructive"}
                                       className="text-xs"

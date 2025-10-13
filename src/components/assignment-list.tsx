@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { useState } from "react"
 import { 
   FileText, 
@@ -56,6 +58,7 @@ export function AssignmentList({ assignments, courseId, onSubmissionSuccess }: A
   const [submissionFile, setSubmissionFile] = useState<File | null>(null)
   const [submissionTitle, setSubmissionTitle] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submissionDialogOpen, setSubmissionDialogOpen] = useState(false)
 
   const filteredAssignments = courseId 
     ? assignments.filter(assignment => assignment.course_id.toString() === courseId)
