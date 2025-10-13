@@ -268,6 +268,29 @@ class ApiClient {
   async getCourseDetails(courseId: string): Promise<ApiResponse> {
     return this.request(`/admin/courses/${courseId}/details`);
   }
+
+  // User creation endpoints
+  async createTeacher(teacherData: {
+    name: string;
+    email: string;
+    password: string;
+  }): Promise<ApiResponse> {
+    return this.request('/admin/teachers', {
+      method: 'POST',
+      body: JSON.stringify(teacherData),
+    });
+  }
+
+  async createStudent(studentData: {
+    name: string;
+    email: string;
+    password: string;
+  }): Promise<ApiResponse> {
+    return this.request('/admin/students', {
+      method: 'POST',
+      body: JSON.stringify(studentData),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();

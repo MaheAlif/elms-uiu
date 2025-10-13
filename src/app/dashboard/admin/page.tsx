@@ -66,6 +66,18 @@ function AdminDashboardContent() {
   const [selectedCourseId, setSelectedCourseId] = useState('')
   const [selectedStudentId, setSelectedStudentId] = useState('')
 
+  // User creation states
+  const [newTeacher, setNewTeacher] = useState({
+    name: '',
+    email: '',
+    password: ''
+  })
+  const [newStudent, setNewStudent] = useState({
+    name: '',
+    email: '',
+    password: ''
+  })
+
   // Modal states
   const [teacherModalOpen, setTeacherModalOpen] = useState(false)
   const [studentModalOpen, setStudentModalOpen] = useState(false)
@@ -241,6 +253,70 @@ function AdminDashboardContent() {
       toast({
         title: "Error",
         description: "Failed to create course",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleCreateTeacher = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const response = await apiClient.createTeacher(newTeacher)
+      if (response.success) {
+        setNewTeacher({
+          name: '',
+          email: '',
+          password: ''
+        })
+        loadAdminData()
+        toast({
+          title: "Success",
+          description: "Teacher account created successfully!",
+          variant: "success"
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to create teacher",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create teacher",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleCreateStudent = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const response = await apiClient.createStudent(newStudent)
+      if (response.success) {
+        setNewStudent({
+          name: '',
+          email: '',
+          password: ''
+        })
+        loadAdminData()
+        toast({
+          title: "Success",
+          description: "Student account created successfully!",
+          variant: "success"
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to create student",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create student",
         variant: "destructive"
       })
     }
@@ -652,6 +728,52 @@ function AdminDashboardContent() {
 
           {/* Teachers Tab */}
           <TabsContent value="teachers" className="space-y-6">
+            {/* Create Teacher Form */}
+            <Card className="glassmorphic">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Plus className="w-5 h-5 mr-2 text-blue-400" />
+                  Create New Teacher
+                </CardTitle>
+                <CardDescription>
+                  Add a new teacher to the system
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleCreateTeacher} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Input
+                    placeholder="Full Name"
+                    value={newTeacher.name}
+                    onChange={(e) => setNewTeacher({...newTeacher, name: e.target.value})}
+                    className="glassmorphic"
+                    required
+                  />
+                  <Input
+                    placeholder="Email Address"
+                    type="email"
+                    value={newTeacher.email}
+                    onChange={(e) => setNewTeacher({...newTeacher, email: e.target.value})}
+                    className="glassmorphic"
+                    required
+                  />
+                  <Input
+                    placeholder="Password"
+                    type="password"
+                    value={newTeacher.password}
+                    onChange={(e) => setNewTeacher({...newTeacher, password: e.target.value})}
+                    className="glassmorphic"
+                    required
+                  />
+                  <div className="md:col-span-3">
+                    <Button type="submit" className="w-full glassmorphic hover:glow-blue">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Teacher Account
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+
             {/* Assign Teacher Form */}
             <Card className="glassmorphic">
               <CardHeader>
@@ -758,6 +880,52 @@ function AdminDashboardContent() {
 
           {/* Students Tab */}
           <TabsContent value="students" className="space-y-6">
+            {/* Create Student Form */}
+            <Card className="glassmorphic">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Plus className="w-5 h-5 mr-2 text-purple-400" />
+                  Create New Student
+                </CardTitle>
+                <CardDescription>
+                  Add a new student to the system
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleCreateStudent} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Input
+                    placeholder="Full Name"
+                    value={newStudent.name}
+                    onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
+                    className="glassmorphic"
+                    required
+                  />
+                  <Input
+                    placeholder="Email Address"
+                    type="email"
+                    value={newStudent.email}
+                    onChange={(e) => setNewStudent({...newStudent, email: e.target.value})}
+                    className="glassmorphic"
+                    required
+                  />
+                  <Input
+                    placeholder="Password"
+                    type="password"
+                    value={newStudent.password}
+                    onChange={(e) => setNewStudent({...newStudent, password: e.target.value})}
+                    className="glassmorphic"
+                    required
+                  />
+                  <div className="md:col-span-3">
+                    <Button type="submit" className="w-full glassmorphic hover:glow-purple">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Student Account
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+
             {/* Enroll Student Form */}
             <Card className="glassmorphic">
               <CardHeader>
