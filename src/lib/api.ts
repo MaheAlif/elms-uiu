@@ -155,10 +155,86 @@ class ApiClient {
     return this.request('/teacher/courses');
   }
 
+  async getTeacherCourseDetails(courseId: string): Promise<ApiResponse> {
+    return this.request(`/teacher/courses/${courseId}/details`);
+  }
+
+  async getTeacherStudents(courseId?: string): Promise<ApiResponse> {
+    const endpoint = courseId ? `/teacher/students?course_id=${courseId}` : '/teacher/students';
+    return this.request(endpoint);
+  }
+
+  async getTeacherMaterials(courseId?: string, sectionId?: string): Promise<ApiResponse> {
+    const params = new URLSearchParams();
+    if (courseId) params.append('course_id', courseId);
+    if (sectionId) params.append('section_id', sectionId);
+    
+    const endpoint = params.toString() ? `/teacher/materials?${params}` : '/teacher/materials';
+    return this.request(endpoint);
+  }
+
+  async uploadMaterial(materialData: FormData): Promise<ApiResponse> {
+    const token = this.getToken();
+    return fetch(`${API_BASE_URL}/teacher/materials/upload`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: materialData,
+    }).then(res => res.json());
+  }
+
+  async deleteMaterial(materialId: string): Promise<ApiResponse> {
+    return this.request(`/teacher/materials/${materialId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getTeacherAssignments(courseId?: string): Promise<ApiResponse> {
+    const endpoint = courseId ? `/teacher/assignments?course_id=${courseId}` : '/teacher/assignments';
+    return this.request(endpoint);
+  }
+
   async createAssignment(assignmentData: Record<string, unknown>): Promise<ApiResponse> {
     return this.request('/teacher/assignments', {
       method: 'POST',
       body: JSON.stringify(assignmentData),
+    });
+  }
+
+  async updateAssignment(assignmentId: string, assignmentData: Record<string, unknown>): Promise<ApiResponse> {
+    return this.request(`/teacher/assignments/${assignmentId}`, {
+      method: 'PUT',
+      body: JSON.stringify(assignmentData),
+    });
+  }
+
+  async deleteAssignment(assignmentId: string): Promise<ApiResponse> {
+    return this.request(`/teacher/assignments/${assignmentId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getAssignmentSubmissions(assignmentId: string): Promise<ApiResponse> {
+    return this.request(`/teacher/assignments/${assignmentId}/submissions`);
+  }
+
+  async gradeSubmission(submissionId: string, gradeData: { grade: number; feedback?: string }): Promise<ApiResponse> {
+    return this.request(`/teacher/submissions/${submissionId}/grade`, {
+      method: 'PUT',
+      body: JSON.stringify(gradeData),
+    });
+  }
+
+  async getTeacherSections(courseId?: string): Promise<ApiResponse> {
+    const endpoint = courseId ? `/teacher/sections?course_id=${courseId}` : '/teacher/sections';
+    return this.request(endpoint);
+  }
+
+  async createSection(sectionData: { course_id: string; name: string }): Promise<ApiResponse> {
+    return this.request('/teacher/sections', {
+      method: 'POST',
+      body: JSON.stringify(sectionData),
     });
   }
 

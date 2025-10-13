@@ -19,6 +19,8 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/components/auth/auth-provider"
 import { ProtectedRoute } from "@/components/auth/protected-route"
+import { useToast } from "@/hooks/use-toast"
+import { apiClient } from "@/lib/api"
 import { 
   LogOut, 
   Settings, 
@@ -31,67 +33,196 @@ import {
   Users,
   Plus,
   Calendar,
-  MessageCircle
+  MessageCircle,
+  Loader2
 } from "lucide-react"
 
-// Mock data for teacher
-const mockTeacherCourses = [
-  {
-    id: '1',
-    title: 'Advanced React Development',
-    section: 'CSE-401-A',
-    students: 45,
-    materials: 12,
-    color: 'from-cyan-500/20 to-blue-500/20'
-  },
-  {
-    id: '2',
-    title: 'Machine Learning Fundamentals',
-    section: 'CSE-402-B',
-    students: 38,
-    materials: 8,
-    color: 'from-purple-500/20 to-pink-500/20'
-  },
-  {
-    id: '3',
-    title: 'Database Design & SQL',
-    section: 'CSE-301-C',
-    students: 52,
-    materials: 15,
-    color: 'from-green-500/20 to-emerald-500/20'
-  }
+// Course colors for visual variety
+const courseColors = [
+  'from-cyan-500/20 to-blue-500/20',
+  'from-purple-500/20 to-pink-500/20',
+  'from-green-500/20 to-emerald-500/20',
+  'from-orange-500/20 to-red-500/20',
+  'from-yellow-500/20 to-orange-500/20',
+  'from-indigo-500/20 to-purple-500/20'
 ]
 
 function TeacherDashboardContent() {
+  const [courses, setCourses] = useState<any[]>([])
   const [selectedCourse, setSelectedCourse] = useState<string>('')
+  const [courseDetails, setCourseDetails] = useState<any>(null)
+  const [materials, setMaterials] = useState<any[]>([])
+  const [students, setStudents] = useState<any[]>([])
+  const [sections, setSections] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [materialTitle, setMaterialTitle] = useState('')
   const [materialDescription, setMaterialDescription] = useState('')
   const [materialLink, setMaterialLink] = useState('')
+  const [uploadingMaterial, setUploadingMaterial] = useState(false)
   const router = useRouter()
   const { user, logout } = useAuth()
+  const { toast } = useToast()
 
+  // Load teacher's courses
   useEffect(() => {
-    setSelectedCourse(mockTeacherCourses[0]?.id || '')
+    loadTeacherCourses()
   }, [])
+
+  // Load details when course is selected
+  useEffect(() => {
+    if (selectedCourse) {
+      loadCourseDetails(selectedCourse)
+      loadCourseMaterials(selectedCourse)
+      loadCourseStudents(selectedCourse)
+    }
+  }, [selectedCourse])
+
+  const loadTeacherCourses = async () => {
+    try {
+      setLoading(true)
+      const response = await apiClient.getTeacherCourses()
+      
+      if (response.success && response.data) {
+        const coursesWithColors = response.data.courses.map((course: any, index: number) => ({
+          ...course,
+          color: courseColors[index % courseColors.length]
+        }))
+        setCourses(coursesWithColors)
+        
+        // Select first course by default
+        if (coursesWithColors.length > 0) {
+          setSelectedCourse(coursesWithColors[0].id.toString())
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to load courses",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Error loading courses:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load courses",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadCourseDetails = async (courseId: string) => {
+    try {
+      const response = await apiClient.getTeacherCourseDetails(courseId)
+      if (response.success && response.data) {
+        setCourseDetails(response.data.course)
+        setSections(response.data.sections || [])
+      }
+    } catch (error) {
+      console.error('Error loading course details:', error)
+    }
+  }
+
+  const loadCourseMaterials = async (courseId: string) => {
+    try {
+      const response = await apiClient.getTeacherMaterials(courseId)
+      if (response.success && response.data) {
+        setMaterials(response.data.materials || [])
+      }
+    } catch (error) {
+      console.error('Error loading materials:', error)
+    }
+  }
+
+  const loadCourseStudents = async (courseId: string) => {
+    try {
+      const response = await apiClient.getTeacherStudents(courseId)
+      if (response.success && response.data) {
+        setStudents(response.data.students || [])
+      }
+    } catch (error) {
+      console.error('Error loading students:', error)
+    }
+  }
 
   const handleLogout = async () => {
     await logout()
     router.push('/login')
   }
 
-  const handleMaterialUpload = (e: React.FormEvent) => {
+  const handleMaterialUpload = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Mock upload logic
-    console.log('Uploading material:', { materialTitle, materialDescription, materialLink, courseId: selectedCourse })
-    // Reset form
-    setMaterialTitle('')
-    setMaterialDescription('')
-    setMaterialLink('')
+    
+    if (!selectedCourse || (!materialTitle.trim() && !materialLink.trim())) {
+      toast({
+        title: "Error", 
+        description: "Please provide a title and either a file or link",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Check if we have sections for this course
+    if (sections.length === 0) {
+      toast({
+        title: "Error",
+        description: "No sections available for this course. Create a section first.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setUploadingMaterial(true)
+      
+      const formData = new FormData()
+      formData.append('section_id', sections[0].id.toString()) // Use first section for now
+      formData.append('title', materialTitle)
+      formData.append('type', 'pdf') // Default type, can be enhanced later
+      
+      // Get file input
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+      if (fileInput && fileInput.files && fileInput.files[0]) {
+        formData.append('material', fileInput.files[0])
+      }
+
+      const response = await apiClient.uploadMaterial(formData)
+      
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Material uploaded successfully",
+        })
+        
+        // Reset form
+        setMaterialTitle('')
+        setMaterialDescription('')
+        setMaterialLink('')
+        if (fileInput) fileInput.value = ''
+        
+        // Reload materials
+        loadCourseMaterials(selectedCourse)
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to upload material",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Error uploading material:', error)
+      toast({
+        title: "Error",
+        description: "Failed to upload material",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingMaterial(false)
+    }
   }
 
-
-
-  const selectedCourseData = mockTeacherCourses.find(course => course.id === selectedCourse)
+  const selectedCourseData = courses.find(course => course.id.toString() === selectedCourse)
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
@@ -154,39 +285,46 @@ function TeacherDashboardContent() {
               My Courses & Sections
             </h2>
             <p className="text-sm text-muted-foreground">
-              {mockTeacherCourses.length} courses assigned
+              {courses.length} courses assigned
             </p>
           </div>
 
-          <div className="space-y-4">
-            {mockTeacherCourses.map((course) => (
-              <Card
-                key={course.id}
-                className={`glassmorphic cursor-pointer transition-all duration-200 ${
-                  selectedCourse === course.id 
-                    ? 'glow-cyan border-cyan-500/30' 
-                    : 'hover:glow-purple border-white/10'
-                }`}
-                onClick={() => setSelectedCourse(course.id)}
-              >
-                <CardContent className="p-4">
-                  <div className={`w-full h-2 bg-gradient-to-r ${course.color} rounded-full mb-3`} />
-                  <h3 className="font-semibold text-foreground mb-1">{course.title}</h3>
-                  <p className="text-sm text-muted-foreground mb-3">{course.section}</p>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span className="flex items-center">
-                      <Users className="w-3 h-3 mr-1" />
-                      {course.students} students
-                    </span>
-                    <span className="flex items-center">
-                      <FileText className="w-3 h-3 mr-1" />
-                      {course.materials} materials
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
+              <span className="ml-2 text-muted-foreground">Loading courses...</span>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {courses.map((course: any) => (
+                <Card
+                  key={course.id}
+                  className={`glassmorphic cursor-pointer transition-all duration-200 ${
+                    selectedCourse === course.id.toString() 
+                      ? 'glow-cyan border-cyan-500/30' 
+                      : 'hover:glow-purple border-white/10'
+                  }`}
+                  onClick={() => setSelectedCourse(course.id.toString())}
+                >
+                  <CardContent className="p-4">
+                    <div className={`w-full h-2 bg-gradient-to-r ${course.color} rounded-full mb-3`} />
+                    <h3 className="font-semibold text-foreground mb-1">{course.course_name}</h3>
+                    <p className="text-sm text-muted-foreground mb-3">{course.course_code}</p>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span className="flex items-center">
+                        <Users className="w-3 h-3 mr-1" />
+                        {course.student_count} students
+                      </span>
+                      <span className="flex items-center">
+                        <FileText className="w-3 h-3 mr-1" />
+                        {course.material_count} materials
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right Panel - Material Management */}
@@ -195,10 +333,10 @@ function TeacherDashboardContent() {
             <>
               <div className="mb-6">
                 <h2 className="text-lg font-semibold text-foreground mb-2">
-                  {selectedCourseData.title}
+                  {selectedCourseData.course_name}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Section: {selectedCourseData.section} • {selectedCourseData.students} enrolled students
+                  {selectedCourseData.course_code} • {selectedCourseData.student_count} enrolled students
                 </p>
               </div>
 
@@ -277,9 +415,22 @@ function TeacherDashboardContent() {
                           </div>
                         </div>
 
-                        <Button type="submit" className="w-full glassmorphic hover:glow-green">
-                          <Upload className="w-4 h-4 mr-2" />
-                          Post Material
+                        <Button 
+                          type="submit" 
+                          className="w-full glassmorphic hover:glow-green"
+                          disabled={uploadingMaterial}
+                        >
+                          {uploadingMaterial ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4 mr-2" />
+                              Post Material
+                            </>
+                          )}
                         </Button>
                       </form>
                     </CardContent>
@@ -291,32 +442,77 @@ function TeacherDashboardContent() {
                     <CardHeader>
                       <CardTitle>Course Materials</CardTitle>
                       <CardDescription>
-                        {selectedCourseData.materials} materials posted
+                        {materials.length} materials posted
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 glassmorphic rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <FileText className="w-5 h-5 text-red-400" />
-                            <div>
-                              <p className="font-medium text-foreground">React Hooks Deep Dive</p>
-                              <p className="text-xs text-muted-foreground">Posted 2 days ago • PDF • 2.5 MB</p>
-                            </div>
+                        {materials.length === 0 ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                            <p>No materials uploaded yet</p>
+                            <p className="text-xs">Use the "Upload Material" tab to add content</p>
                           </div>
-                          <Badge variant="secondary">PDF</Badge>
-                        </div>
-                        
-                        <div className="flex items-center justify-between p-3 glassmorphic rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <Link className="w-5 h-5 text-blue-400" />
-                            <div>
-                              <p className="font-medium text-foreground">Advanced Patterns Tutorial</p>
-                              <p className="text-xs text-muted-foreground">Posted 1 week ago • YouTube Link</p>
+                        ) : (
+                          materials.map((material: any) => (
+                            <div key={material.id} className="flex items-center justify-between p-3 glassmorphic rounded-lg hover:bg-white/5 transition-colors">
+                              <div className="flex items-center space-x-3 flex-1">
+                                <FileText className={`w-5 h-5 ${
+                                  material.type === 'pdf' ? 'text-red-400' : 
+                                  material.type === 'ppt' ? 'text-orange-400' : 
+                                  material.type === 'doc' ? 'text-blue-400' : 
+                                  'text-gray-400'
+                                }`} />
+                                <div className="flex-1">
+                                  <p className="font-medium text-foreground">{material.title}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Posted {new Date(material.uploaded_at).toLocaleDateString()} • {material.type.toUpperCase()}
+                                    {material.file_size && ` • ${(parseInt(material.file_size) / 1024 / 1024).toFixed(1)} MB`}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Badge variant="secondary">{material.type.toUpperCase()}</Badge>
+                                {material.file_path && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="glassmorphic hover:glow-cyan"
+                                    onClick={() => {
+                                      // Handle both Windows and Unix paths - extract filename from full path
+                                      let relativePath = material.file_path;
+                                      
+                                      // Handle Windows paths (backslashes)
+                                      if (relativePath.includes('uploads\\materials\\')) {
+                                        const filename = relativePath.split('uploads\\materials\\')[1];
+                                        relativePath = `/uploads/materials/${filename}`;
+                                      }
+                                      // Handle Unix paths (forward slashes)
+                                      else if (relativePath.includes('uploads/materials/')) {
+                                        const filename = relativePath.split('uploads/materials/')[1];
+                                        relativePath = `/uploads/materials/${filename}`;
+                                      }
+                                      // If it's already a relative path starting with /uploads/, use as is
+                                      else if (relativePath.startsWith('/uploads/')) {
+                                        // Already correct format
+                                      }
+                                      else {
+                                        // Fallback: assume it's just a filename
+                                        relativePath = `/uploads/materials/${relativePath}`;
+                                      }
+                                      
+                                      console.log('Original path:', material.file_path);
+                                      console.log('Converted to:', relativePath);
+                                      window.open(`http://localhost:5000${relativePath}`, '_blank');
+                                    }}
+                                  >
+                                    Download
+                                  </Button>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          <Badge variant="secondary">LINK</Badge>
-                        </div>
+                          ))
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -327,24 +523,37 @@ function TeacherDashboardContent() {
                     <CardHeader>
                       <CardTitle>Enrolled Students</CardTitle>
                       <CardDescription>
-                        {selectedCourseData.students} students in this section
+                        {students.length} students in this course
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {Array.from({ length: 5 }, (_, i) => (
-                          <div key={i} className="flex items-center space-x-3 p-3 glassmorphic rounded-lg">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-cyan-400">
-                                S{i + 1}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium text-foreground">Student {i + 1}</p>
-                              <p className="text-xs text-muted-foreground">student{i + 1}@elms.edu</p>
-                            </div>
+                        {students.length === 0 ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                            <p>No students enrolled yet</p>
+                            <p className="text-xs">Students will appear here once they enroll</p>
                           </div>
-                        ))}
+                        ) : (
+                          students.map((student: any) => (
+                            <div key={student.id} className="flex items-center space-x-3 p-3 glassmorphic rounded-lg">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-cyan-400">
+                                  {student.name.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium text-foreground">{student.name}</p>
+                                <p className="text-xs text-muted-foreground">{student.email}</p>
+                                {student.enrolled_at && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Enrolled: {new Date(student.enrolled_at).toLocaleDateString()}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </CardContent>
                   </Card>
