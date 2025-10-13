@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-// import { Textarea } from "@/components/ui/textarea"
+import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { 
   DropdownMenu, 
@@ -34,7 +34,9 @@ import {
   Plus,
   Calendar,
   MessageCircle,
-  Loader2
+  Loader2,
+  ClipboardList,
+  Clock
 } from "lucide-react"
 
 // Course colors for visual variety
@@ -54,11 +56,19 @@ function TeacherDashboardContent() {
   const [materials, setMaterials] = useState<any[]>([])
   const [students, setStudents] = useState<any[]>([])
   const [sections, setSections] = useState<any[]>([])
+  const [assignments, setAssignments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [materialTitle, setMaterialTitle] = useState('')
   const [materialDescription, setMaterialDescription] = useState('')
   const [materialLink, setMaterialLink] = useState('')
   const [uploadingMaterial, setUploadingMaterial] = useState(false)
+  
+  // Assignment form state
+  const [assignmentTitle, setAssignmentTitle] = useState('')
+  const [assignmentDescription, setAssignmentDescription] = useState('')
+  const [assignmentDueDate, setAssignmentDueDate] = useState('')
+  const [assignmentMarks, setAssignmentMarks] = useState('100')
+  const [creatingAssignment, setCreatingAssignment] = useState(false)
   const router = useRouter()
   const { user, logout } = useAuth()
   const { toast } = useToast()
@@ -74,6 +84,8 @@ function TeacherDashboardContent() {
       loadCourseDetails(selectedCourse)
       loadCourseMaterials(selectedCourse)
       loadCourseStudents(selectedCourse)
+      loadCourseAssignments(selectedCourse)
+      loadCourseSections(selectedCourse)
     }
   }, [selectedCourse])
 
@@ -143,6 +155,87 @@ function TeacherDashboardContent() {
       }
     } catch (error) {
       console.error('Error loading students:', error)
+    }
+  }
+
+  const loadCourseAssignments = async (courseId: string) => {
+    try {
+      const response = await apiClient.getTeacherAssignments(courseId)
+      if (response.success && response.data) {
+        setAssignments(response.data.assignments || [])
+      }
+    } catch (error) {
+      console.error('Error loading assignments:', error)
+    }
+  }
+
+  const loadCourseSections = async (courseId: string) => {
+    try {
+      const response = await apiClient.getTeacherSections(courseId)
+      if (response.success && response.data) {
+        setSections(response.data.sections || [])
+      }
+    } catch (error) {
+      console.error('Error loading sections:', error)
+    }
+  }
+
+  const handleCreateAssignment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!selectedCourse || !assignmentTitle.trim() || !assignmentDescription.trim() || !assignmentDueDate) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setCreatingAssignment(true)
+      
+      // Use the first available section for the course
+      const sectionId = sections.length > 0 ? sections[0].id : 1
+      
+      const response = await apiClient.createAssignment({
+        section_id: sectionId,
+        title: assignmentTitle.trim(),
+        description: assignmentDescription.trim(),
+        due_date: new Date(assignmentDueDate).toISOString(),
+        total_marks: parseInt(assignmentMarks) || 100
+      })
+
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Assignment created successfully!",
+        })
+        
+        // Reset form
+        setAssignmentTitle('')
+        setAssignmentDescription('')
+        setAssignmentDueDate('')
+        setAssignmentMarks('100')
+        
+        // Reload assignments
+        loadCourseAssignments(selectedCourse)
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to create assignment",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Assignment creation error:', error)
+      toast({
+        title: "Error",
+        description: "Failed to create assignment",
+        variant: "destructive",
+      })
+    } finally {
+      setCreatingAssignment(false)
     }
   }
 
@@ -341,7 +434,7 @@ function TeacherDashboardContent() {
               </div>
 
               <Tabs defaultValue="upload" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-3 glassmorphic">
+                <TabsList className="grid w-full grid-cols-4 glassmorphic">
                   <TabsTrigger value="upload" className="glassmorphic hover:glow-cyan">
                     <Upload className="w-4 h-4 mr-2" />
                     Upload Material
@@ -349,6 +442,10 @@ function TeacherDashboardContent() {
                   <TabsTrigger value="materials" className="glassmorphic hover:glow-purple">
                     <FileText className="w-4 h-4 mr-2" />
                     Materials
+                  </TabsTrigger>
+                  <TabsTrigger value="assignments" className="glassmorphic hover:glow-orange">
+                    <ClipboardList className="w-4 h-4 mr-2" />
+                    Assignments
                   </TabsTrigger>
                   <TabsTrigger value="students" className="glassmorphic hover:glow-green">
                     <Users className="w-4 h-4 mr-2" />
@@ -557,6 +654,150 @@ function TeacherDashboardContent() {
                       </div>
                     </CardContent>
                   </Card>
+                </TabsContent>
+
+                <TabsContent value="assignments">
+                  <div className="space-y-6">
+                    {/* Create Assignment Form */}
+                    <Card className="glassmorphic">
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Plus className="w-5 h-5 mr-2 text-orange-400" />
+                          Create New Assignment
+                        </CardTitle>
+                        <CardDescription>
+                          Create assignment portals with deadlines for your students
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <form onSubmit={handleCreateAssignment} className="space-y-4">
+                          <div>
+                            <Input
+                              placeholder="Assignment Title (e.g., React Hooks Project)"
+                              value={assignmentTitle}
+                              onChange={(e) => setAssignmentTitle(e.target.value)}
+                              className="glassmorphic"
+                              required
+                            />
+                          </div>
+                          
+                          <div>
+                            <Textarea
+                              placeholder="Assignment Description and Requirements..."
+                              value={assignmentDescription}
+                              onChange={(e) => setAssignmentDescription(e.target.value)}
+                              className="glassmorphic min-h-[100px]"
+                              required
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Due Date</label>
+                              <Input
+                                type="datetime-local"
+                                value={assignmentDueDate}
+                                onChange={(e) => setAssignmentDueDate(e.target.value)}
+                                className="glassmorphic"
+                                required
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Total Marks</label>
+                              <Input
+                                type="number"
+                                placeholder="100"
+                                value={assignmentMarks}
+                                onChange={(e) => setAssignmentMarks(e.target.value)}
+                                className="glassmorphic"
+                                min="1"
+                                max="1000"
+                              />
+                            </div>
+                          </div>
+
+                          <Button 
+                            type="submit" 
+                            className="w-full glassmorphic hover:glow-orange"
+                            disabled={creatingAssignment}
+                          >
+                            {creatingAssignment ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Creating Assignment...
+                              </>
+                            ) : (
+                              <>
+                                <ClipboardList className="w-4 h-4 mr-2" />
+                                Create Assignment Portal
+                              </>
+                            )}
+                          </Button>
+                        </form>
+                      </CardContent>
+                    </Card>
+
+                    {/* Assignments List */}
+                    <Card className="glassmorphic">
+                      <CardHeader>
+                        <CardTitle>Active Assignments</CardTitle>
+                        <CardDescription>
+                          {assignments.length} assignments created
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {assignments.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <ClipboardList className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                              <p>No assignments created yet</p>
+                              <p className="text-xs">Create your first assignment portal above</p>
+                            </div>
+                          ) : (
+                            assignments.map((assignment: any) => (
+                              <div key={assignment.id} className="p-4 glassmorphic rounded-lg border">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <h4 className="font-semibold text-foreground">{assignment.title}</h4>
+                                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                      {assignment.description}
+                                    </p>
+                                    
+                                    <div className="flex items-center space-x-4 mt-3 text-xs text-muted-foreground">
+                                      <div className="flex items-center">
+                                        <Clock className="w-3 h-3 mr-1" />
+                                        Due: {new Date(assignment.due_date).toLocaleDateString()} at {new Date(assignment.due_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                      </div>
+                                      <div className="flex items-center">
+                                        <FileText className="w-3 h-3 mr-1" />
+                                        {assignment.total_marks} marks
+                                      </div>
+                                      {assignment.submission_count !== undefined && (
+                                        <div className="flex items-center">
+                                          <Users className="w-3 h-3 mr-1" />
+                                          {assignment.submission_count} submissions
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center space-x-2">
+                                    <Badge 
+                                      variant={new Date(assignment.due_date) > new Date() ? "secondary" : "destructive"}
+                                      className="text-xs"
+                                    >
+                                      {new Date(assignment.due_date) > new Date() ? "Active" : "Overdue"}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </TabsContent>
               </Tabs>
             </>
