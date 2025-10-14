@@ -48,6 +48,7 @@ export default function DashboardPage() {
   const [courses, setCourses] = useState([])
   const [materials, setMaterials] = useState([])
   const [assignments, setAssignments] = useState([])
+  const [calendarEvents, setCalendarEvents] = useState(mockCalendarEvents)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const { user, logout, isAuthenticated } = useAuth()
@@ -98,6 +99,27 @@ export default function DashboardPage() {
       if (assignmentsResponse.success && assignmentsResponse.data) {
         const assignmentsData = (assignmentsResponse.data as any)?.assignments || []
         setAssignments(assignmentsData)
+      }
+
+      // Load calendar events (assignment deadlines and events)
+      const calendarResponse = await apiClient.getStudentCalendar()
+      if (calendarResponse.success && calendarResponse.data) {
+        const eventsData = (calendarResponse.data as any)?.events || []
+        
+        // Transform the API response to match the CalendarEvent interface
+        const transformedEvents = eventsData.map((event: any) => ({
+          id: event.id.toString(),
+          title: event.title,
+          date: new Date(event.date),
+          type: event.type,
+          courseId: event.course_code,
+          description: event.description,
+          status: event.status,
+          courseName: event.course_name,
+          courseColor: event.course_color
+        }))
+        
+        setCalendarEvents(transformedEvents)
       }
       
     } catch (error) {
@@ -223,7 +245,7 @@ export default function DashboardPage() {
               
               <TabsContent value="calendar" className="h-[calc(100%-60px)] mt-0">
                 <div className="p-4 h-full">
-                  <CalendarPanel events={mockCalendarEvents} />
+                  <CalendarPanel events={calendarEvents} />
                 </div>
               </TabsContent>
               
@@ -368,7 +390,7 @@ export default function DashboardPage() {
               </TabsContent>
               
               <TabsContent value="calendar" className="h-full m-0">
-                <CalendarPanel events={mockCalendarEvents} />
+                <CalendarPanel events={calendarEvents} />
               </TabsContent>
               
               <TabsContent value="chat" className="h-full m-0">

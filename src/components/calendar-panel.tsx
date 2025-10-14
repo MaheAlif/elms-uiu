@@ -209,6 +209,15 @@ export function CalendarPanel({ events }: CalendarPanelProps) {
     )
   }
 
+  const hasUniversityEvents = (date: Date) => {
+    return events.some(event => 
+      event.date.toDateString() === date.toDateString() && 
+      (event.type === 'university_event' || event.type === 'holiday' || event.type === 'exam_week' || 
+       event.type === 'registration' || event.type === 'orientation' || event.type === 'graduation' || 
+       event.type === 'maintenance' || event.type === 'event')
+    )
+  }
+
   const handleMouseEnter = (date: Date, event: React.MouseEvent) => {
     const dayEvents = getEventsForDate(date)
     
@@ -224,25 +233,13 @@ export function CalendarPanel({ events }: CalendarPanelProps) {
 
   return (
     <>
-      <Card className="h-full glassmorphic flex flex-col">
-        <CardHeader className="p-3 border-b border-white/10 flex-shrink-0">
-          <div className="flex items-center space-x-2">
-            <CalendarDays className="w-4 h-4 text-purple-400" />
-            <div>
-              <CardTitle className="text-xs font-medium text-foreground">Academic Calendar</CardTitle>
-              <CardDescription className="text-xs text-muted-foreground">
-                Track deadlines and events
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="p-3 flex flex-col flex-1 overflow-hidden">
+      <div className="h-full flex flex-col overflow-hidden">
+        <CardContent className="p-4 flex flex-col flex-1 overflow-hidden">
           <div className="flex-1 flex flex-col min-h-0">
             {/* Calendar Header */}
-            <div className="flex items-center justify-between mb-4 flex-shrink-0">
+            <div className="flex items-center justify-between mb-3 flex-shrink-0">
               <h2 className="text-lg font-semibold text-foreground">
-                {selectedDate ? selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'August 2025'}
+                {selectedDate ? selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'October 2025'}
               </h2>
               <div className="flex items-center space-x-1">
                 <button 
@@ -273,30 +270,31 @@ export function CalendarPanel({ events }: CalendarPanelProps) {
             </div>
 
             {/* Calendar Grid */}
-            <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 flex flex-col min-h-0 max-h-full">
               {/* Week Headers */}
-              <div className="grid grid-cols-7 gap-1 mb-2 flex-shrink-0">
+              <div className="grid grid-cols-7 gap-1 mb-1 flex-shrink-0">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                  <div key={day} className="h-6 flex items-center justify-center text-xs font-medium text-muted-foreground">
+                  <div key={day} className="h-8 flex items-center justify-center text-sm font-medium text-muted-foreground">
                     {day}
                   </div>
                 ))}
               </div>
 
               {/* Calendar Days - Square Grid */}
-              <div className="grid grid-cols-7 gap-1 flex-1">
+              <div className="grid grid-cols-7 gap-1 flex-1 auto-rows-fr max-h-[350px]">
                 {generateCalendarDays().map((day, index) => {
                   const isToday = day && day.toDateString() === new Date().toDateString()
                   const isSelected = day && selectedDate && day.toDateString() === selectedDate.toDateString()
                   const hasDeadlineEvents = day && hasDeadlines(day)
-                  const hasRegularEventsOnly = day && hasRegularEvents(day) && !hasDeadlines(day)
+                  const hasRegularEventsOnly = day && hasRegularEvents(day) && !hasDeadlines(day) && !hasUniversityEvents(day)
+                  const hasUniversityEventsOnly = day && hasUniversityEvents(day) && !hasDeadlines(day)
                   const dayEvents = day ? getEventsForDate(day) : []
                   
                   return (
                     <div
                       key={index}
                       className={`
-                        relative aspect-square flex items-center justify-center text-xs cursor-pointer rounded transition-all duration-200
+                        relative flex items-center justify-center text-sm cursor-pointer rounded transition-all duration-200 min-h-[40px]
                         ${!day ? 'invisible' : ''}
                         ${day && day.getMonth() !== (selectedDate || new Date()).getMonth() ? 'text-muted-foreground opacity-50' : 'text-foreground'}
                         ${isToday ? 'bg-blue-500 text-white font-semibold' : ''}
@@ -304,6 +302,7 @@ export function CalendarPanel({ events }: CalendarPanelProps) {
                         ${!isToday && !isSelected ? 'hover:bg-accent/50' : ''}
                         ${hasDeadlineEvents ? 'deadline-glow' : ''}
                         ${hasRegularEventsOnly ? 'event-glow' : ''}
+                        ${hasUniversityEventsOnly ? 'university-event-glow' : ''}
                       `}
                       onClick={() => day && setSelectedDate(day)}
                       onMouseEnter={(e) => {
@@ -340,7 +339,7 @@ export function CalendarPanel({ events }: CalendarPanelProps) {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </div>
       
       {hoveredDate && hoveredDateEvents.length > 0 && (
         <HoverPopup events={hoveredDateEvents} position={mousePosition} />

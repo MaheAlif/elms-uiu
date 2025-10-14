@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { 
   DropdownMenu, 
@@ -20,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/components/auth/auth-provider"
 import { ProtectedRoute } from "@/components/auth/protected-route"
+import { CalendarPanel } from "@/components/calendar-panel"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api"
 import type { Course, User, Teacher, AdminStats } from "@/types"
@@ -37,6 +39,7 @@ import {
   Shield,
   School,
   Calendar,
+  CalendarDays,
   UserCheck,
   UserX,
   Loader2,
@@ -51,6 +54,7 @@ function AdminDashboardContent() {
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [students, setStudents] = useState<User[]>([])
   const [stats, setStats] = useState<AdminStats | null>(null)
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   
   // Form states
@@ -78,6 +82,15 @@ function AdminDashboardContent() {
     password: ''
   })
 
+  // University event creation state
+  const [newUniversityEvent, setNewUniversityEvent] = useState({
+    title: '',
+    description: '',
+    date: '',
+    type: 'event' as 'holiday' | 'exam_week' | 'registration' | 'orientation' | 'graduation' | 'maintenance' | 'event',
+    priority: 'normal' as 'low' | 'normal' | 'high'
+  })
+
   // Modal states
   const [teacherModalOpen, setTeacherModalOpen] = useState(false)
   const [studentModalOpen, setStudentModalOpen] = useState(false)
@@ -93,6 +106,7 @@ function AdminDashboardContent() {
   // Load data on component mount
   useEffect(() => {
     loadAdminData()
+    loadCalendarEvents()
   }, [])
 
   const loadAdminData = async () => {
@@ -149,6 +163,75 @@ function AdminDashboardContent() {
       console.error('Failed to load admin data:', error)
     }
     setLoading(false)
+  }
+
+  const loadCalendarEvents = async () => {
+    try {
+      const response = await apiClient.getAdminCalendar()
+      if (response.success && response.data) {
+        const data = response.data as any
+        const eventsData = data.events || []
+        
+        // Transform the API response to match the CalendarEvent interface
+        const transformedEvents = eventsData.map((event: any) => ({
+          id: event.id.toString(),
+          title: event.title,
+          date: new Date(event.date),
+          type: event.type,
+          courseId: event.course_code,
+          description: event.description,
+          status: event.status,
+          courseName: event.course_name,
+          courseColor: event.course_color,
+          priority: event.priority
+        }))
+        
+        setCalendarEvents(transformedEvents)
+      }
+    } catch (error) {
+      console.error('Error loading calendar events:', error)
+    }
+  }
+
+  const handleCreateUniversityEvent = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const response = await apiClient.createUniversityEvent({
+        title: newUniversityEvent.title,
+        description: newUniversityEvent.description,
+        date: new Date(newUniversityEvent.date).toISOString(),
+        type: newUniversityEvent.type,
+        priority: newUniversityEvent.priority
+      })
+
+      if (response.success) {
+        setNewUniversityEvent({
+          title: '',
+          description: '',
+          date: '',
+          type: 'event',
+          priority: 'normal'
+        })
+        loadCalendarEvents()
+        toast({
+          title: "Success",
+          description: "University event created successfully!",
+          className: "bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to create university event",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create university event",
+        variant: "destructive"
+      })
+    }
   }
 
   const handleLogout = async () => {
@@ -240,7 +323,7 @@ function AdminDashboardContent() {
         toast({
           title: "Success",
           description: "Course created successfully!",
-          variant: "success"
+          className: "bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200",
         })
       } else {
         toast({
@@ -272,7 +355,7 @@ function AdminDashboardContent() {
         toast({
           title: "Success",
           description: "Teacher account created successfully!",
-          variant: "success"
+          className: "bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200",
         })
       } else {
         toast({
@@ -304,7 +387,7 @@ function AdminDashboardContent() {
         toast({
           title: "Success",
           description: "Student account created successfully!",
-          variant: "success"
+          className: "bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200",
         })
       } else {
         toast({
@@ -331,7 +414,7 @@ function AdminDashboardContent() {
           toast({
             title: "Success",
             description: "Course deleted successfully!",
-            variant: "success"
+            className: "bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200",
           })
         } else {
           toast({
@@ -363,7 +446,7 @@ function AdminDashboardContent() {
         toast({
           title: "Success",
           description: "Teacher assigned to course successfully!",
-          variant: "success"
+          className: "bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200",
         })
       } else {
         toast({
@@ -394,7 +477,7 @@ function AdminDashboardContent() {
         toast({
           title: "Success",
           description: "Student enrolled successfully!",
-          variant: "success"
+          className: "bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200",
         })
       } else {
         toast({
@@ -482,10 +565,14 @@ function AdminDashboardContent() {
       {/* Main Content */}
       <div className="flex-1 p-6 overflow-y-auto">
         <Tabs defaultValue="stats" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 glassmorphic">
+          <TabsList className="grid w-full grid-cols-5 glassmorphic">
             <TabsTrigger value="stats" className="glassmorphic hover:glow-cyan">
               <Calendar className="w-4 h-4 mr-2" />
               Statistics
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="glassmorphic hover:glow-blue">
+              <Calendar className="w-4 h-4 mr-2" />
+              Calendar
             </TabsTrigger>
             <TabsTrigger value="courses" className="glassmorphic hover:glow-purple">
               <BookOpen className="w-4 h-4 mr-2" />
@@ -577,6 +664,177 @@ function AdminDashboardContent() {
                 </Card>
               </div>
             )}
+          </TabsContent>
+
+          {/* Calendar Tab */}
+          <TabsContent value="calendar" className="h-[calc(100vh-160px)]">
+            <div className="flex h-full gap-4">
+              {/* Left Side - Events List (20%) */}
+              <div className="w-1/5">
+                <Card className="glassmorphic h-full">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center text-sm">
+                      <CalendarDays className="w-4 h-4 mr-2 text-purple-400" />
+                      All Events
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      {calendarEvents.length} events total
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-3 h-[calc(100%-80px)] overflow-y-auto">
+                    <div className="space-y-2 max-h-full overflow-y-auto">
+                      {calendarEvents.length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-8">
+                          No events scheduled
+                        </p>
+                      ) : (
+                        calendarEvents
+                          .sort((a, b) => b.date.getTime() - a.date.getTime())
+                          .map((event, index) => (
+                            <div key={index} className="p-2 glassmorphic rounded-lg border border-white/10">
+                              <div className="flex items-center space-x-2 mb-1">
+                                <div className={`w-2 h-2 rounded-full ${
+                                  event.type === 'assignment' ? 'bg-red-400' :
+                                  event.type === 'university_event' || event.type === 'holiday' || event.type === 'exam_week' ? 'bg-blue-400' :
+                                  'bg-yellow-400'
+                                }`} />
+                                <span className="text-xs font-medium text-foreground truncate">
+                                  {event.title}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {event.date.toLocaleDateString()}
+                              </p>
+                              {event.description && (
+                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                  {event.description}
+                                </p>
+                              )}
+                            </div>
+                          ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Middle - Calendar (50%) */}
+              <div className="w-1/2">
+                <Card className="glassmorphic h-full">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center text-sm">
+                      <Calendar className="w-4 h-4 mr-2 text-blue-400" />
+                      University Calendar
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      System-wide events and important dates
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-3 h-[calc(100%-80px)] overflow-hidden">
+                    <CalendarPanel events={calendarEvents} />
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Right Side - Create Event Form (30%) */}
+              <div className="w-3/10 flex-shrink-0" style={{width: '30%'}}>
+                <Card className="glassmorphic h-full">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center text-sm">
+                      <Plus className="w-4 h-4 mr-2 text-orange-400" />
+                      Create University Event
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Add important dates and announcements
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-3 h-[calc(100%-80px)] overflow-y-auto">
+                    <form onSubmit={handleCreateUniversityEvent} className="space-y-3">
+                      <Input
+                        placeholder="Event Title (e.g., Winter Break)"
+                        value={newUniversityEvent.title}
+                        onChange={(e) => setNewUniversityEvent({...newUniversityEvent, title: e.target.value})}
+                        className="glassmorphic text-sm"
+                        required
+                      />
+
+                      <Input
+                        type="datetime-local"
+                        value={newUniversityEvent.date}
+                        onChange={(e) => setNewUniversityEvent({...newUniversityEvent, date: e.target.value})}
+                        className="glassmorphic text-sm"
+                        required
+                      />
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" className="w-full justify-between glassmorphic text-sm h-9">
+                            {newUniversityEvent.type.charAt(0).toUpperCase() + newUniversityEvent.type.slice(1).replace('_', ' ')}
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="glassmorphic">
+                          <DropdownMenuItem onClick={() => setNewUniversityEvent({...newUniversityEvent, type: 'holiday'})}>
+                            Holiday
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setNewUniversityEvent({...newUniversityEvent, type: 'exam_week'})}>
+                            Exam Week
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setNewUniversityEvent({...newUniversityEvent, type: 'registration'})}>
+                            Registration
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setNewUniversityEvent({...newUniversityEvent, type: 'orientation'})}>
+                            Orientation
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setNewUniversityEvent({...newUniversityEvent, type: 'graduation'})}>
+                            Graduation
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setNewUniversityEvent({...newUniversityEvent, type: 'maintenance'})}>
+                            Maintenance
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setNewUniversityEvent({...newUniversityEvent, type: 'event'})}>
+                            General Event
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" className="w-full justify-between glassmorphic text-sm h-9">
+                            {newUniversityEvent.priority.charAt(0).toUpperCase() + newUniversityEvent.priority.slice(1)} Priority
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="glassmorphic">
+                          <DropdownMenuItem onClick={() => setNewUniversityEvent({...newUniversityEvent, priority: 'low'})}>
+                            Low Priority
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setNewUniversityEvent({...newUniversityEvent, priority: 'normal'})}>
+                            Normal Priority
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setNewUniversityEvent({...newUniversityEvent, priority: 'high'})}>
+                            High Priority
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
+                      <Textarea
+                        placeholder="Event description and details..."
+                        value={newUniversityEvent.description}
+                        onChange={(e) => setNewUniversityEvent({...newUniversityEvent, description: e.target.value})}
+                        className="glassmorphic text-sm"
+                        rows={3}
+                      />
+
+                      <Button type="submit" className="w-full glassmorphic hover:glow-orange text-sm h-9">
+                        <Plus className="w-3 h-3 mr-2" />
+                        Create University Event
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Courses Tab */}

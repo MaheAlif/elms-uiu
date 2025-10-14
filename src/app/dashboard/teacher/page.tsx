@@ -23,6 +23,7 @@ import { ProtectedRoute } from "@/components/auth/protected-route"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api"
 import { AssignmentSubmissions } from "@/components/assignment-submissions"
+import { CalendarPanel } from "@/components/calendar-panel"
 import { 
   LogOut, 
   Settings, 
@@ -35,6 +36,7 @@ import {
   Users,
   Plus,
   Calendar,
+  CalendarDays,
   MessageCircle,
   Loader2,
   ClipboardList,
@@ -59,6 +61,7 @@ function TeacherDashboardContent() {
   const [students, setStudents] = useState<any[]>([])
   const [sections, setSections] = useState<any[]>([])
   const [assignments, setAssignments] = useState<any[]>([])
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [materialTitle, setMaterialTitle] = useState('')
   const [materialDescription, setMaterialDescription] = useState('')
@@ -89,6 +92,7 @@ function TeacherDashboardContent() {
       loadCourseStudents(selectedCourse)
       loadCourseAssignments(selectedCourse)
       loadCourseSections(selectedCourse)
+      loadCalendarEvents()
     }
   }, [selectedCourse])
 
@@ -189,6 +193,40 @@ function TeacherDashboardContent() {
     }
   }
 
+  const loadCalendarEvents = async () => {
+    try {
+      // Load teacher events only (teachers don't have access to admin calendar)
+      const teacherResponse = await apiClient.getTeacherCalendar()
+      
+      let allEvents: any[] = []
+      
+      // Add teacher events
+      if (teacherResponse.success && teacherResponse.data) {
+        const teacherData = teacherResponse.data as any
+        const teacherEvents = teacherData.events || []
+        allEvents = [...teacherEvents]
+      }
+      
+      // Transform the API response to match the CalendarEvent interface
+      const transformedEvents = allEvents.map((event: any) => ({
+        id: event.id.toString(),
+        title: event.title,
+        date: new Date(event.date),
+        type: event.type,
+        courseId: event.course_code,
+        description: event.description,
+        status: event.status,
+        courseName: event.course_name,
+        courseColor: event.course_color,
+        priority: event.priority
+      }))
+      
+      setCalendarEvents(transformedEvents)
+    } catch (error) {
+      console.error('Error loading calendar events:', error)
+    }
+  }
+
   const handleCreateAssignment = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -219,6 +257,7 @@ function TeacherDashboardContent() {
         toast({
           title: "Success",
           description: "Assignment created successfully!",
+          className: "bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200",
         })
         
         // Reset form
@@ -227,8 +266,9 @@ function TeacherDashboardContent() {
         setAssignmentDueDate('')
         setAssignmentMarks('100')
         
-        // Reload assignments
+        // Reload assignments and calendar
         loadCourseAssignments(selectedCourse)
+        loadCalendarEvents()
       } else {
         toast({
           title: "Error",
@@ -295,6 +335,7 @@ function TeacherDashboardContent() {
         toast({
           title: "Success",
           description: "Material uploaded successfully",
+          className: "bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200",
         })
         
         // Reset form
@@ -448,7 +489,7 @@ function TeacherDashboardContent() {
               </div>
 
               <Tabs defaultValue="upload" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-4 glassmorphic">
+                <TabsList className="grid w-full grid-cols-5 glassmorphic">
                   <TabsTrigger value="upload" className="glassmorphic hover:glow-cyan">
                     <Upload className="w-4 h-4 mr-2" />
                     Upload Material
@@ -460,6 +501,10 @@ function TeacherDashboardContent() {
                   <TabsTrigger value="assignments" className="glassmorphic hover:glow-orange">
                     <ClipboardList className="w-4 h-4 mr-2" />
                     Assignments
+                  </TabsTrigger>
+                  <TabsTrigger value="calendar" className="glassmorphic hover:glow-blue">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Calendar
                   </TabsTrigger>
                   <TabsTrigger value="students" className="glassmorphic hover:glow-green">
                     <Users className="w-4 h-4 mr-2" />
@@ -820,6 +865,148 @@ function TeacherDashboardContent() {
                         </div>
                       </CardContent>
                     </Card>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="calendar" className="h-[calc(100vh-240px)]">
+                  <div className="flex h-full gap-4">
+                    {/* Left Side - Events List (20%) */}
+                    <div className="w-1/5">
+                      <Card className="glassmorphic h-full">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center text-sm">
+                            <CalendarDays className="w-4 h-4 mr-2 text-purple-400" />
+                            All Events
+                          </CardTitle>
+                          <CardDescription className="text-xs">
+                            {calendarEvents.length} events total
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-3 h-[calc(100%-80px)] overflow-y-auto">
+                          <div className="space-y-2 max-h-full overflow-y-auto">
+                            {calendarEvents.length === 0 ? (
+                              <p className="text-xs text-muted-foreground text-center py-8">
+                                No events scheduled
+                              </p>
+                            ) : (
+                              calendarEvents
+                                .sort((a, b) => b.date.getTime() - a.date.getTime())
+                                .map((event, index) => (
+                                  <div key={index} className="p-2 glassmorphic rounded-lg border border-white/10">
+                                    <div className="flex items-center space-x-2 mb-1">
+                                      <div className={`w-2 h-2 rounded-full ${
+                                        event.type === 'assignment' ? 'bg-red-400' :
+                                        event.type === 'university_event' || event.type === 'holiday' || event.type === 'exam_week' ? 'bg-blue-400' :
+                                        'bg-yellow-400'
+                                      }`} />
+                                      <span className="text-xs font-medium text-foreground truncate">
+                                        {event.title}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                      {event.date.toLocaleDateString()}
+                                    </p>
+                                    {event.description && (
+                                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                        {event.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                ))
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Middle - Calendar (50%) */}
+                    <div className="w-1/2">
+                      <Card className="glassmorphic h-full">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center text-sm">
+                            <Calendar className="w-4 h-4 mr-2 text-blue-400" />
+                            Academic Calendar
+                          </CardTitle>
+                          <CardDescription className="text-xs">
+                            Assignment deadlines and important dates
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-3 h-[calc(100%-80px)] overflow-hidden">
+                          <CalendarPanel events={calendarEvents} />
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Right Side - Quick Assignment Creation (30%) */}
+                    <div className="w-3/10 flex-shrink-0" style={{width: '30%'}}>
+                      <Card className="glassmorphic h-full">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center text-sm">
+                            <Plus className="w-4 h-4 mr-2 text-orange-400" />
+                            Quick Assignment
+                          </CardTitle>
+                          <CardDescription className="text-xs">
+                            Create assignment with deadline
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-3 h-[calc(100%-80px)] overflow-y-auto">
+                          <form onSubmit={handleCreateAssignment} className="space-y-3">
+                            <Input
+                              placeholder="Assignment Title"
+                              value={assignmentTitle}
+                              onChange={(e) => setAssignmentTitle(e.target.value)}
+                              className="glassmorphic text-sm"
+                              required
+                            />
+
+                            <Textarea
+                              placeholder="Assignment Description..."
+                              value={assignmentDescription}
+                              onChange={(e) => setAssignmentDescription(e.target.value)}
+                              className="glassmorphic text-sm"
+                              rows={3}
+                              required
+                            />
+
+                            <Input
+                              type="datetime-local"
+                              value={assignmentDueDate}
+                              onChange={(e) => setAssignmentDueDate(e.target.value)}
+                              className="glassmorphic text-sm"
+                              required
+                            />
+
+                            <Input
+                              type="number"
+                              placeholder="Total Marks (100)"
+                              value={assignmentMarks}
+                              onChange={(e) => setAssignmentMarks(e.target.value)}
+                              className="glassmorphic text-sm"
+                              min="1"
+                              max="1000"
+                            />
+
+                            <Button 
+                              type="submit" 
+                              className="w-full glassmorphic hover:glow-orange text-sm h-9"
+                              disabled={creatingAssignment}
+                            >
+                              {creatingAssignment ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                                  Creating...
+                                </>
+                              ) : (
+                                <>
+                                  <ClipboardList className="w-3 h-3 mr-2" />
+                                  Create Assignment
+                                </>
+                              )}
+                            </Button>
+                          </form>
+                        </CardContent>
+                      </Card>
+                    </div>
                   </div>
                 </TabsContent>
               </Tabs>

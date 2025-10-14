@@ -418,6 +418,146 @@ class ApiClient {
       body: JSON.stringify(studentData),
     });
   }
+
+  // ===== CALENDAR & NOTIFICATION ENDPOINTS =====
+
+  // Student calendar and notifications
+  async getStudentNotifications(): Promise<ApiResponse> {
+    return this.request('/student/notifications');
+  }
+
+  async markNotificationRead(notificationId: string): Promise<ApiResponse> {
+    return this.request(`/student/notifications/${notificationId}/read`, {
+      method: 'PUT',
+    });
+  }
+
+  async markAllNotificationsRead(): Promise<ApiResponse> {
+    return this.request('/student/notifications/mark-all-read', {
+      method: 'PUT',
+    });
+  }
+
+  // Teacher calendar and notifications
+  async getTeacherCalendar(): Promise<ApiResponse> {
+    return this.request('/teacher/calendar');
+  }
+
+  async createCalendarEvent(eventData: {
+    section_id: number;
+    title: string;
+    description?: string;
+    date: string;
+    type: 'assignment' | 'exam' | 'meeting' | 'class';
+  }): Promise<ApiResponse> {
+    return this.request('/teacher/calendar/events', {
+      method: 'POST',
+      body: JSON.stringify(eventData),
+    });
+  }
+
+  async updateCalendarEvent(eventId: string, eventData: {
+    title: string;
+    description?: string;
+    date: string;
+    type: 'assignment' | 'exam' | 'meeting' | 'class';
+  }): Promise<ApiResponse> {
+    return this.request(`/teacher/calendar/events/${eventId}`, {
+      method: 'PUT',
+      body: JSON.stringify(eventData),
+    });
+  }
+
+  async deleteCalendarEvent(eventId: string): Promise<ApiResponse> {
+    return this.request(`/teacher/calendar/events/${eventId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async createAnnouncement(announcementData: {
+    section_id: number;
+    title: string;
+    content: string;
+  }): Promise<ApiResponse> {
+    return this.request('/teacher/announcements', {
+      method: 'POST',
+      body: JSON.stringify(announcementData),
+    });
+  }
+
+  async getTeacherNotifications(): Promise<ApiResponse> {
+    return this.request('/teacher/notifications');
+  }
+
+  async markTeacherNotificationRead(notificationId: string): Promise<ApiResponse> {
+    return this.request(`/teacher/notifications/${notificationId}/read`, {
+      method: 'PUT',
+    });
+  }
+
+  // Admin calendar and notifications
+  async getAdminCalendar(): Promise<ApiResponse> {
+    return this.request('/admin/calendar');
+  }
+
+  async createUniversityEvent(eventData: {
+    title: string;
+    description?: string;
+    date: string;
+    type: 'holiday' | 'exam_week' | 'registration' | 'orientation' | 'graduation' | 'maintenance' | 'event';
+    priority?: 'low' | 'normal' | 'high';
+  }): Promise<ApiResponse> {
+    return this.request('/admin/calendar/university-events', {
+      method: 'POST',
+      body: JSON.stringify(eventData),
+    });
+  }
+
+  async updateUniversityEvent(eventId: string, eventData: {
+    title: string;
+    description?: string;
+    date: string;
+    type: 'holiday' | 'exam_week' | 'registration' | 'orientation' | 'graduation' | 'maintenance' | 'event';
+    priority?: 'low' | 'normal' | 'high';
+  }): Promise<ApiResponse> {
+    return this.request(`/admin/calendar/university-events/${eventId}`, {
+      method: 'PUT',
+      body: JSON.stringify(eventData),
+    });
+  }
+
+  async deleteUniversityEvent(eventId: string): Promise<ApiResponse> {
+    return this.request(`/admin/calendar/university-events/${eventId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getAdminNotifications(params?: {
+    type?: string;
+    read_status?: boolean;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.type) searchParams.append('type', params.type);
+    if (params?.read_status !== undefined) searchParams.append('read_status', params.read_status.toString());
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    
+    const endpoint = searchParams.toString() ? `/admin/notifications?${searchParams}` : '/admin/notifications';
+    return this.request(endpoint);
+  }
+
+  async broadcastNotification(notificationData: {
+    message: string;
+    type: 'assignment' | 'due_event' | 'reminder' | 'grade_posted';
+    target_roles?: ('student' | 'teacher' | 'admin')[];
+  }): Promise<ApiResponse> {
+    return this.request('/admin/notifications/broadcast', {
+      method: 'POST',
+      body: JSON.stringify(notificationData),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();

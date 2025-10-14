@@ -214,6 +214,57 @@
   .dark .hover\:glow-pink:hover {
     box-shadow: 0 0 30px rgba(236, 72, 153, 0.5);
   }
+
+  /* Additional glow colors */
+  .glow-blue {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+    transition: box-shadow 0.3s ease;
+  }
+  
+  .glow-blue:hover {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.6);
+  }
+  
+  .dark .glow-blue {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  }
+  
+  .dark .glow-blue:hover {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+  }
+
+  .glow-orange {
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
+    transition: box-shadow 0.3s ease;
+  }
+  
+  .glow-orange:hover {
+    box-shadow: 0 0 30px rgba(249, 115, 22, 0.6);
+  }
+  
+  .dark .glow-orange {
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
+  }
+  
+  .dark .glow-orange:hover {
+    box-shadow: 0 0 30px rgba(249, 115, 22, 0.5);
+  }
+
+  .hover\:glow-blue:hover {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.6);
+  }
+  
+  .hover\:glow-orange:hover {
+    box-shadow: 0 0 30px rgba(249, 115, 22, 0.6);
+  }
+  
+  .dark .hover\:glow-blue:hover {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+  }
+  
+  .dark .hover\:glow-orange:hover {
+    box-shadow: 0 0 30px rgba(249, 115, 22, 0.5);
+  }
   
   /* Line clamp utility */
   .line-clamp-2 {
@@ -263,5 +314,16 @@
   .event-glow:hover {
     background: rgba(234, 179, 8, 0.2) !important;
     box-shadow: 0 0 12px rgba(234, 179, 8, 0.6) !important;
+  }
+
+  .university-event-glow {
+    background: rgba(59, 130, 246, 0.1) !important;
+    border: 1px solid rgb(59, 130, 246) !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.4) !important;
+  }
+  
+  .university-event-glow:hover {
+    background: rgba(59, 130, 246, 0.2) !important;
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.6) !important;
   }
 }

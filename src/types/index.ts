@@ -85,9 +85,37 @@ export interface ChatMessage {
 export interface CalendarEvent {
   id: string;
   title: string;
+  description?: string;
   date: Date;
-  type: 'assignment' | 'exam' | 'class' | 'meeting';
+  type: 'assignment' | 'exam' | 'class' | 'meeting' | 'university_event' | 'holiday' | 'exam_week' | 'registration' | 'orientation' | 'graduation' | 'maintenance' | 'event';
   courseId?: string;
+  course_name?: string;
+  course_code?: string;
+  course_color?: string;
+  status?: string;
+  priority?: 'low' | 'normal' | 'high';
+  submission_count?: number;
+  total_students?: number;
+  teacher_name?: string;
+}
+
+export interface Notification {
+  id: number;
+  type: 'assignment' | 'due_event' | 'reminder' | 'grade_posted';
+  message: string;
+  read_status: boolean;
+  created_at: string;
+}
+
+export interface UniversityEvent {
+  id: number;
+  title: string;
+  description?: string;
+  date: string;
+  type: 'holiday' | 'exam_week' | 'registration' | 'orientation' | 'graduation' | 'maintenance' | 'event';
+  priority: 'low' | 'normal' | 'high';
+  created_by: number;
+  created_at: string;
 }
 
 export interface AuthState {
