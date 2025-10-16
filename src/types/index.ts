@@ -22,6 +22,24 @@ export interface Course {
   student_count?: number;
   created_at?: string;
   updated_at?: string;
+  // Section information (when course is accessed through a section)
+  section_id?: number;
+  section_name?: string;
+  section_max_capacity?: number;
+  section_current_enrollment?: number;
+}
+
+export interface Section {
+  id: number;
+  course_id: number;
+  course_code: string;
+  course_title: string;
+  name: string;
+  teacher_id?: number;
+  teacher_name?: string;
+  max_capacity: number;
+  current_enrollment: number;
+  created_at: string;
 }
 
 export interface AdminStats {
@@ -59,6 +77,7 @@ export interface Enrollment {
   id: number;
   user_id: number;
   course_id: number;
+  section_id?: number; // NEW: Section enrollment
   student_name: string;
   student_email: string;
   enrolled_at: string;
@@ -75,11 +94,18 @@ export interface Material {
 }
 
 export interface ChatMessage {
-  id: string;
-  sender: string;
+  id: string | number;
+  sender_id?: number;
+  sender_name?: string;
+  sender?: string; // For backward compatibility
+  sender_avatar?: string;
+  avatar?: string; // For backward compatibility
   message: string;
+  message_type?: 'text' | 'image' | 'file';
+  file_url?: string;
   timestamp: string;
-  avatar?: string;
+  isCurrentUser?: boolean;
+  room_id?: number;
 }
 
 export interface CalendarEvent {

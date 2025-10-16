@@ -282,12 +282,7 @@ class ApiClient {
     return this.request(endpoint);
   }
 
-  async createSection(sectionData: { course_id: string; name: string }): Promise<ApiResponse> {
-    return this.request('/teacher/sections', {
-      method: 'POST',
-      body: JSON.stringify(sectionData),
-    });
-  }
+  // Teachers can only VIEW sections, not create them (admin-only)
 
   // Admin endpoints
   async getAdminStats(): Promise<ApiResponse> {
@@ -366,10 +361,10 @@ class ApiClient {
     });
   }
 
-  async enrollStudent(studentId: string, courseId: string, sectionId?: string): Promise<ApiResponse> {
+  async enrollStudent(studentId: string, sectionId: string): Promise<ApiResponse> {
     return this.request('/admin/enrollments', {
       method: 'POST',
-      body: JSON.stringify({ student_id: studentId, course_id: courseId, section_id: sectionId }),
+      body: JSON.stringify({ student_id: studentId, section_id: sectionId }),
     });
   }
 
@@ -379,6 +374,59 @@ class ApiClient {
 
   async removeEnrollment(enrollmentId: string): Promise<ApiResponse> {
     return this.request(`/admin/enrollments/${enrollmentId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ===== SECTION MANAGEMENT ENDPOINTS (ADMIN ONLY) =====
+  
+  async getAdminSections(courseId?: string): Promise<ApiResponse> {
+    const queryParam = courseId ? `?course_id=${courseId}` : '';
+    return this.request(`/admin/sections${queryParam}`);
+  }
+
+  async createAdminSection(sectionData: {
+    course_id: number;
+    name: string;
+    teacher_id?: number;
+    max_capacity?: number;
+  }): Promise<ApiResponse> {
+    return this.request('/admin/sections', {
+      method: 'POST',
+      body: JSON.stringify(sectionData),
+    });
+  }
+
+  async getSectionDetails(sectionId: string): Promise<ApiResponse> {
+    return this.request(`/admin/sections/${sectionId}`);
+  }
+
+  async updateSection(sectionId: string, sectionData: {
+    name?: string;
+    teacher_id?: number | null;
+    max_capacity?: number;
+  }): Promise<ApiResponse> {
+    return this.request(`/admin/sections/${sectionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(sectionData),
+    });
+  }
+
+  async deleteSection(sectionId: string): Promise<ApiResponse> {
+    return this.request(`/admin/sections/${sectionId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async assignTeacherToSection(sectionId: string, teacherId: number): Promise<ApiResponse> {
+    return this.request(`/admin/sections/${sectionId}/assign-teacher`, {
+      method: 'POST',
+      body: JSON.stringify({ teacher_id: teacherId }),
+    });
+  }
+
+  async removeTeacherFromSection(sectionId: string): Promise<ApiResponse> {
+    return this.request(`/admin/sections/${sectionId}/teacher`, {
       method: 'DELETE',
     });
   }

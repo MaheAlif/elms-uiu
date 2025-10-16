@@ -226,7 +226,12 @@ export default function DashboardPage() {
           
           <TabsContent value="chat" className="h-full mt-0">
             <div className="p-4 h-full">
-              <ClassChatPanel messages={mockChatMessages} currentUser={user.name} />
+              <ClassChatPanel 
+                courseId={parseInt(selectedCourse) || 0}
+                courseName={(courses.find((c: any) => c.id === parseInt(selectedCourse)) as any)?.course_name || ''}
+                currentUserId={user.id}
+                currentUserName={user.name}
+              />
             </div>
           </TabsContent>
           
@@ -394,7 +399,12 @@ export default function DashboardPage() {
               </TabsContent>
               
               <TabsContent value="chat" className="h-full m-0">
-                <ClassChatPanel messages={mockChatMessages} currentUser={user.name} />
+                <ClassChatPanel 
+                  courseId={parseInt(selectedCourse) || 0}
+                  courseName={(courses.find((c: any) => c.id === parseInt(selectedCourse)) as any)?.course_name || ''}
+                  currentUserId={user.id}
+                  currentUserName={user.name}
+                />
               </TabsContent>
             </div>
           </Tabs>

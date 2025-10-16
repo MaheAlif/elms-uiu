@@ -45,8 +45,10 @@ import {
   Loader2,
   RefreshCw,
   Eye,
-  Mail
+  Mail,
+  Layers
 } from "lucide-react"
+import { SimpleSectionManagement } from "@/components/admin/simple-section-management"
 
 function AdminDashboardContent() {
   // State management
@@ -55,6 +57,7 @@ function AdminDashboardContent() {
   const [students, setStudents] = useState<User[]>([])
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [calendarEvents, setCalendarEvents] = useState<any[]>([])
+  const [sections, setSections] = useState<any[]>([]) // NEW: All sections for dropdowns
   const [loading, setLoading] = useState(true)
   
   // Form states
@@ -67,7 +70,7 @@ function AdminDashboardContent() {
     academic_year: '2024-2025'
   })
   const [selectedTeacherId, setSelectedTeacherId] = useState('')
-  const [selectedCourseId, setSelectedCourseId] = useState('')
+  const [selectedSectionId, setSelectedSectionId] = useState('') // CHANGED: from courseId to sectionId
   const [selectedStudentId, setSelectedStudentId] = useState('')
 
   // User creation states
@@ -95,9 +98,11 @@ function AdminDashboardContent() {
   const [teacherModalOpen, setTeacherModalOpen] = useState(false)
   const [studentModalOpen, setStudentModalOpen] = useState(false)
   const [courseModalOpen, setCourseModalOpen] = useState(false)
+  const [sectionStudentsModalOpen, setSectionStudentsModalOpen] = useState(false)
   const [selectedTeacherProfile, setSelectedTeacherProfile] = useState<any>(null)
   const [selectedStudentProfile, setSelectedStudentProfile] = useState<any>(null)
   const [selectedCourseDetails, setSelectedCourseDetails] = useState<any>(null)
+  const [selectedSectionStudents, setSelectedSectionStudents] = useState<any>(null)
 
   const router = useRouter()
   const { user, logout } = useAuth()
@@ -110,16 +115,19 @@ function AdminDashboardContent() {
   }, [])
 
   const loadAdminData = async () => {
+    console.log('🔄 loadAdminData called - refreshing all data...')
     setLoading(true)
     try {
-      const [statsRes, coursesRes, teachersRes, studentsRes] = await Promise.all([
+      const [statsRes, coursesRes, teachersRes, studentsRes, sectionsRes] = await Promise.all([
         apiClient.getAdminStats(),
         apiClient.getAdminCourses(),
         apiClient.getTeachers(),
-        apiClient.getAllUsers({ role: 'student' })
+        apiClient.getAllUsers({ role: 'student' }),
+        apiClient.getAdminSections() // NEW: Load all sections
       ])
 
-      console.log('API Responses:', { statsRes, coursesRes, teachersRes, studentsRes })
+      console.log('API Responses:', { statsRes, coursesRes, teachersRes, studentsRes, sectionsRes })
+      console.log('📋 Sections loaded:', (sectionsRes.data as any)?.length || 0, 'sections')
 
       if (statsRes.success) {
         const statsData = statsRes.data as any
@@ -159,10 +167,16 @@ function AdminDashboardContent() {
         const studentsData = Array.isArray(studentsRes.data) ? studentsRes.data : (studentsRes.data as any)?.users || []
         setStudents(studentsData as User[])
       }
+      if (sectionsRes.success) {
+        const sectionsData = (sectionsRes.data as any) || []
+        console.log('✅ Setting sections state:', sectionsData)
+        setSections(sectionsData)
+      }
     } catch (error) {
       console.error('Failed to load admin data:', error)
     }
     setLoading(false)
+    console.log('✅ loadAdminData complete')
   }
 
   const loadCalendarEvents = async () => {
@@ -306,6 +320,28 @@ function AdminDashboardContent() {
     }
   }
 
+  const handleViewSectionStudents = async (sectionId: string) => {
+    try {
+      const response = await apiClient.getSectionDetails(sectionId)
+      if (response.success) {
+        setSelectedSectionStudents(response.data)
+        setSectionStudentsModalOpen(true)
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load section students",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load section students",
+        variant: "destructive"
+      })
+    }
+  }
+
   const handleCreateCourse = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
@@ -435,17 +471,17 @@ function AdminDashboardContent() {
 
   const handleAssignTeacher = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedTeacherId || !selectedCourseId) return
+    if (!selectedTeacherId || !selectedSectionId) return
     
     try {
-      const response = await apiClient.assignTeacher(selectedTeacherId, selectedCourseId)
+      const response = await apiClient.assignTeacherToSection(selectedSectionId, parseInt(selectedTeacherId))
       if (response.success) {
         setSelectedTeacherId('')
-        setSelectedCourseId('')
+        setSelectedSectionId('')
         loadAdminData() // Reload data
         toast({
           title: "Success",
-          description: "Teacher assigned to course successfully!",
+          description: "Teacher assigned to section successfully!",
           className: "bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200",
         })
       } else {
@@ -466,30 +502,34 @@ function AdminDashboardContent() {
 
   const handleEnrollStudent = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedStudentId || !selectedCourseId) return
+    if (!selectedStudentId || !selectedSectionId) return
     
     try {
-      const response = await apiClient.enrollStudent(selectedStudentId, selectedCourseId)
+      console.log('Enrolling student:', { studentId: selectedStudentId, sectionId: selectedSectionId })
+      const response = await apiClient.enrollStudent(selectedStudentId, selectedSectionId)
+      console.log('Enroll response:', response)
+      
       if (response.success) {
         setSelectedStudentId('')
-        setSelectedCourseId('')
+        setSelectedSectionId('')
         loadAdminData() // Reload data
         toast({
           title: "Success",
-          description: "Student enrolled successfully!",
+          description: response.message || "Student enrolled in section successfully!",
           className: "bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200",
         })
       } else {
         toast({
           title: "Error",
-          description: response.message || "Failed to enroll student",
+          description: response.message || response.error || "Failed to enroll student",
           variant: "destructive"
         })
       }
     } catch (error) {
+      console.error('Enroll error:', error)
       toast({
         title: "Error",
-        description: "Failed to enroll student",
+        description: `Network error: ${error}`,
         variant: "destructive"
       })
     }
@@ -565,7 +605,7 @@ function AdminDashboardContent() {
       {/* Main Content */}
       <div className="flex-1 p-6 overflow-y-auto">
         <Tabs defaultValue="stats" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 glassmorphic">
+          <TabsList className="grid w-full grid-cols-6 glassmorphic">
             <TabsTrigger value="stats" className="glassmorphic hover:glow-cyan">
               <Calendar className="w-4 h-4 mr-2" />
               Statistics
@@ -573,6 +613,10 @@ function AdminDashboardContent() {
             <TabsTrigger value="calendar" className="glassmorphic hover:glow-blue">
               <Calendar className="w-4 h-4 mr-2" />
               Calendar
+            </TabsTrigger>
+            <TabsTrigger value="sections" className="glassmorphic hover:glow-orange">
+              <Layers className="w-4 h-4 mr-2" />
+              Sections
             </TabsTrigger>
             <TabsTrigger value="courses" className="glassmorphic hover:glow-purple">
               <BookOpen className="w-4 h-4 mr-2" />
@@ -837,6 +881,11 @@ function AdminDashboardContent() {
             </div>
           </TabsContent>
 
+          {/* Sections Tab */}
+          <TabsContent value="sections" className="space-y-6">
+            <SimpleSectionManagement onSectionChange={loadAdminData} />
+          </TabsContent>
+
           {/* Courses Tab */}
           <TabsContent value="courses" className="space-y-6">
             {/* Create Course Form */}
@@ -930,53 +979,92 @@ function AdminDashboardContent() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {courses && courses.length > 0 ? courses.map((course) => (
-                    <div key={course.id} className="glassmorphic p-4 rounded-lg">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <h3 className="font-semibold text-foreground">{course.course_name}</h3>
-                          <p className="text-sm text-muted-foreground">{course.course_code}</p>
+                  {courses && courses.length > 0 ? courses.map((course) => {
+                    // Get sections for this course
+                    const courseSections = sections.filter((s: any) => s.course_id === course.id)
+                    
+                    return (
+                      <div key={course.id} className="glassmorphic p-4 rounded-lg">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h3 className="font-semibold text-foreground">{course.course_name}</h3>
+                            <p className="text-sm text-muted-foreground">{course.course_code}</p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="glassmorphic hover:glow-blue"
+                              onClick={() => handleViewCourseDetails(course.id.toString())}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="glassmorphic hover:glow-red"
+                              onClick={() => handleDeleteCourse(course.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex space-x-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="glassmorphic hover:glow-blue"
-                            onClick={() => handleViewCourseDetails(course.id.toString())}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="glassmorphic hover:glow-red"
-                            onClick={() => handleDeleteCourse(course.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-muted-foreground">
+                          <div>
+                            <span className="font-medium">Credits: </span>
+                            {course.credits}
+                          </div>
+                          <div>
+                            <span className="font-medium">Semester: </span>
+                            {course.semester}
+                          </div>
+                          <div>
+                            <span className="font-medium">Sections: </span>
+                            {courseSections.length}
+                          </div>
+                          <div>
+                            <span className="font-medium">Total Students: </span>
+                            {courseSections.reduce((acc: number, s: any) => acc + (s.current_enrollment || 0), 0)}
+                          </div>
                         </div>
+                        <p className="text-xs text-muted-foreground mt-2">{course.description}</p>
+                        
+                        {/* Sections under this course */}
+                        {courseSections.length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-white/10">
+                            <h4 className="text-sm font-medium text-foreground mb-2 flex items-center">
+                              <Layers className="w-4 h-4 mr-2 text-cyan-400" />
+                              Sections ({courseSections.length})
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              {courseSections.map((section: any) => (
+                                <div key={section.id} className="text-xs bg-black/20 p-2 rounded border border-white/5 hover:border-white/10 transition-colors">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="font-medium text-foreground">{section.name}</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-muted-foreground">{section.current_enrollment}/{section.max_capacity}</span>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleViewSectionStudents(section.id.toString())}
+                                        className="h-6 w-6 p-0 hover:bg-white/10"
+                                        title="View enrolled students"
+                                      >
+                                        <Eye className="h-3 w-3 text-cyan-400" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  <div className="text-muted-foreground">
+                                    Teacher: {section.teacher_name || "Not assigned"}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-muted-foreground">
-                        <div>
-                          <span className="font-medium">Credits: </span>
-                          {course.credits}
-                        </div>
-                        <div>
-                          <span className="font-medium">Semester: </span>
-                          {course.semester}
-                        </div>
-                        <div>
-                          <span className="font-medium">Teacher: </span>
-                          {course.teacher_name || 'Not assigned'}
-                        </div>
-                        <div>
-                          <span className="font-medium">Students: </span>
-                          {course.student_count || 0}
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-2">{course.description}</p>
-                    </div>
-                  )) : (
+                    )
+                  }) : (
                     <p className="text-center text-muted-foreground py-8">No courses found. Create your first course above.</p>
                   )}
                 </div>
@@ -1037,10 +1125,10 @@ function AdminDashboardContent() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <UserPlus className="w-5 h-5 mr-2 text-green-400" />
-                  Assign Teacher to Course
+                  Assign Teacher to Section
                 </CardTitle>
                 <CardDescription>
-                  Assign a teacher to a course
+                  Assign a teacher to a course section
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1066,23 +1154,25 @@ function AdminDashboardContent() {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" className="w-full justify-between glassmorphic">
-                        {selectedCourseId ? courses.find(c => c.id.toString() === selectedCourseId)?.course_name : "Select Course"}
+                        {selectedSectionId 
+                          ? `${sections.find((s: any) => s.id.toString() === selectedSectionId)?.course_code} - ${sections.find((s: any) => s.id.toString() === selectedSectionId)?.name}`
+                          : "Select Section"}
                         <Edit className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="glassmorphic w-full">
-                      {courses.map((course) => (
+                    <DropdownMenuContent className="glassmorphic w-full max-h-60 overflow-y-auto">
+                      {sections.map((section: any) => (
                         <DropdownMenuItem
-                          key={course.id}
-                          onClick={() => setSelectedCourseId(course.id.toString())}
+                          key={section.id}
+                          onClick={() => setSelectedSectionId(section.id.toString())}
                         >
-                          {course.course_name} ({course.course_code})
+                          {section.course_code} - {section.name}
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
                   <div className="md:col-span-2">
-                    <Button type="submit" className="w-full glassmorphic hover:glow-green" disabled={!selectedTeacherId || !selectedCourseId}>
+                    <Button type="submit" className="w-full glassmorphic hover:glow-green" disabled={!selectedTeacherId || !selectedSectionId}>
                       <UserPlus className="w-4 h-4 mr-2" />
                       Assign Teacher
                     </Button>
@@ -1189,10 +1279,10 @@ function AdminDashboardContent() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <UserPlus className="w-5 h-5 mr-2 text-yellow-400" />
-                  Enroll Student in Course
+                  Enroll Student in Section
                 </CardTitle>
                 <CardDescription>
-                  Enroll a student in a course
+                  Enroll a student in a course section
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1218,23 +1308,25 @@ function AdminDashboardContent() {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" className="w-full justify-between glassmorphic">
-                        {selectedCourseId ? courses.find(c => c.id.toString() === selectedCourseId)?.course_name : "Select Course"}
+                        {selectedSectionId 
+                          ? `${sections.find((s: any) => s.id.toString() === selectedSectionId)?.course_code} - ${sections.find((s: any) => s.id.toString() === selectedSectionId)?.name}`
+                          : "Select Section"}
                         <Edit className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="glassmorphic w-full">
-                      {courses.map((course) => (
+                    <DropdownMenuContent className="glassmorphic w-full max-h-60 overflow-y-auto">
+                      {sections.map((section: any) => (
                         <DropdownMenuItem
-                          key={course.id}
-                          onClick={() => setSelectedCourseId(course.id.toString())}
+                          key={section.id}
+                          onClick={() => setSelectedSectionId(section.id.toString())}
                         >
-                          {course.course_name} ({course.course_code})
+                          {section.course_code} - {section.name} ({section.current_enrollment}/{section.max_capacity})
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
                   <div className="md:col-span-2">
-                    <Button type="submit" className="w-full glassmorphic hover:glow-yellow" disabled={!selectedStudentId || !selectedCourseId}>
+                    <Button type="submit" className="w-full glassmorphic hover:glow-yellow" disabled={!selectedStudentId || !selectedSectionId}>
                       <UserPlus className="w-4 h-4 mr-2" />
                       Enroll Student
                     </Button>
@@ -1469,6 +1561,68 @@ function AdminDashboardContent() {
                   </div>
                 ) : (
                   <p className="text-muted-foreground">No students enrolled</p>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Section Students Modal */}
+      <Dialog open={sectionStudentsModalOpen} onOpenChange={setSectionStudentsModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto glassmorphic">
+          <DialogHeader>
+            <DialogTitle>Section Students</DialogTitle>
+          </DialogHeader>
+          {selectedSectionStudents && (
+            <div className="space-y-4">
+              <div className="p-4 glassmorphic rounded-lg border border-white/10">
+                <h3 className="text-lg font-semibold text-foreground">
+                  {selectedSectionStudents.course_code} - {selectedSectionStudents.name}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {selectedSectionStudents.course_title}
+                </p>
+                <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
+                  <div>
+                    <span className="font-medium">Teacher:</span> {selectedSectionStudents.teacher_name || 'Not assigned'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Capacity:</span> {selectedSectionStudents.current_enrollment}/{selectedSectionStudents.max_capacity}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-3">Enrolled Students ({selectedSectionStudents.students?.length || 0})</h4>
+                {selectedSectionStudents.students && selectedSectionStudents.students.length > 0 ? (
+                  <div className="border border-white/10 rounded-lg glassmorphic overflow-hidden">
+                    <div className="grid grid-cols-3 gap-4 p-3 border-b border-white/10 font-medium text-sm bg-white/5">
+                      <div>Name</div>
+                      <div>Email</div>
+                      <div>Enrolled Date</div>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
+                      {selectedSectionStudents.students.map((student: any) => (
+                        <div key={student.id} className="grid grid-cols-3 gap-4 p-3 border-b border-white/5 last:border-b-0 text-sm hover:bg-white/5 transition-colors">
+                          <div className="flex items-center space-x-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-cyan-400 text-xs">
+                                {student.name.split(' ').map((n: string) => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium">{student.name}</span>
+                          </div>
+                          <div className="text-muted-foreground">{student.email}</div>
+                          <div className="text-muted-foreground">{new Date(student.enrolled_at).toLocaleDateString()}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8 glassmorphic rounded-lg border border-white/10">
+                    No students enrolled in this section yet
+                  </p>
                 )}
               </div>
             </div>
