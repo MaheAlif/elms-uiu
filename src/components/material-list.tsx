@@ -3,8 +3,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { FileText, FileSpreadsheet, FileImage, Video, Download, Calendar, Clock, BookOpen } from "lucide-react"
+import { FileText, FileSpreadsheet, FileImage, Video, Download, Calendar, Clock, BookOpen, Bot } from "lucide-react"
+import { apiClient } from "@/lib/api"
+import { useToast } from "@/hooks/use-toast"
 
 interface StudentMaterial {
   id: number
@@ -27,11 +28,39 @@ interface MaterialListProps {
 /**
  * MaterialList component displays course materials with download functionality
  * Shows different icons based on file type and includes glassmorphic styling
+ * Includes "Add to AI Chat" button for AI assistant integration
  */
 export function MaterialList({ materials, courseId }: MaterialListProps) {
+  const { toast } = useToast()
+  
   const filteredMaterials = courseId 
     ? materials.filter(material => material.course_id.toString() === courseId)
     : materials
+
+  const handleAddToAI = async (material: StudentMaterial) => {
+    try {
+      const response = await apiClient.addMaterialToAI(material.id.toString())
+      
+      if (response.success) {
+        toast({
+          title: "✅ Added to AI Chat",
+          description: `"${material.title}" is now in your AI context. Go to AI Assistant tab!`,
+          className: "bg-cyan-50 border-cyan-200 text-cyan-800 dark:bg-cyan-900/20 dark:border-cyan-800 dark:text-cyan-200",
+          duration: 3000, // Auto-dismiss after 3 seconds
+        })
+      } else {
+        throw new Error(response.error || 'Failed to add material')
+      }
+    } catch (error: any) {
+      console.error('Add to AI error:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add material to AI chat",
+        variant: "destructive",
+        duration: 4000,
+      })
+    }
+  }
 
   const getFileIcon = (type: string) => {
     switch (type) {
@@ -120,12 +149,20 @@ export function MaterialList({ materials, courseId }: MaterialListProps) {
                 </div>
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                <div className="flex justify-between items-center">
-                  <div className="flex-1" />
+                <div className="flex gap-2 items-center">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="glassmorphic hover:glow-green"
+                    className="glassmorphic hover:glow-cyan flex-1"
+                    onClick={() => handleAddToAI(material)}
+                  >
+                    <Bot className="w-3 h-3 mr-2" />
+                    Add to AI Chat
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="glassmorphic hover:glow-green flex-1"
                     onClick={async () => {
                       try {
                         const token = localStorage.getItem('token')

@@ -606,6 +606,82 @@ class ApiClient {
       body: JSON.stringify(notificationData),
     });
   }
+
+  // ===== AI ASSISTANT ENDPOINTS =====
+
+  /**
+   * Get AI chat history
+   * GET /api/student/ai/history
+   */
+  async getAIChatHistory(): Promise<ApiResponse> {
+    return this.request('/student/ai/history');
+  }
+
+  /**
+   * Send message to AI
+   * POST /api/student/ai/chat
+   */
+  async sendAIMessage(message: string, file?: File): Promise<ApiResponse> {
+    if (file) {
+      // If file is attached, use FormData
+      const formData = new FormData();
+      formData.append('message', message);
+      formData.append('file', file);
+
+      const token = this.getToken();
+      return fetch(`${API_BASE_URL}/student/ai/chat`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      }).then(res => res.json());
+    } else {
+      // No file, use JSON
+      return this.request('/student/ai/chat', {
+        method: 'POST',
+        body: JSON.stringify({ message }),
+      });
+    }
+  }
+
+  /**
+   * Add study material to AI context
+   * POST /api/student/ai/add-material/:materialId
+   */
+  async addMaterialToAI(materialId: string): Promise<ApiResponse> {
+    return this.request(`/student/ai/add-material/${materialId}`, {
+      method: 'POST',
+    });
+  }
+
+  /**
+   * Get AI context (attached materials)
+   * GET /api/student/ai/context
+   */
+  async getAIContext(): Promise<ApiResponse> {
+    return this.request('/student/ai/context');
+  }
+
+  /**
+   * Remove material from AI context
+   * DELETE /api/student/ai/remove-material/:materialId
+   */
+  async removeAIMaterial(materialId: number): Promise<ApiResponse> {
+    return this.request(`/student/ai/remove-material/${materialId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Clear AI context
+   * DELETE /api/student/ai/clear-context
+   */
+  async clearAIContext(): Promise<ApiResponse> {
+    return this.request('/student/ai/clear-context', {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const apiClient = new ApiClient();
