@@ -19,6 +19,7 @@ import { AssignmentList } from "@/components/assignment-list-simple"
 import { ChatbotPanel } from "@/components/chatbot-panel"
 import { CalendarPanel } from "@/components/calendar-panel"
 import { ClassChatPanel } from "@/components/class-chat-panel"
+import { AdminDashboard } from "@/components/admin/admin-dashboard"
 import { 
   mockChatMessages, 
   mockCalendarEvents 
@@ -152,7 +153,54 @@ export default function DashboardPage() {
     )
   }
 
-  // Mobile Layout
+  // Admin Dashboard
+  if (user.role === 'admin') {
+    return (
+      <ProtectedRoute>
+        <div className="flex h-screen bg-gradient-to-br from-background via-background to-muted/20 overflow-hidden">
+          {/* Topbar */}
+          <div className="absolute top-0 right-0 z-10 flex items-center gap-4 p-4">
+            <ThemeToggle />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full glassmorphic glow-cyan">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback className="glassmorphic">
+                      {user.name?.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="glassmorphic w-56" align="end">
+                <div className="flex flex-col space-y-1 p-2">
+                  <p className="text-sm font-medium leading-none">{user.name}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <UserIcon className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} data-testid="admin-logout-btn">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <AdminDashboard />
+        </div>
+      </ProtectedRoute>
+    )
+  }
+
+  // Mobile Layout (Students)
   if (isMobile) {
     return (
       <ProtectedRoute>
