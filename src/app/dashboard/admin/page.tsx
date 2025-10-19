@@ -915,13 +915,16 @@ function AdminDashboardContent() {
                     className="glassmorphic border-white/20"
                     required
                   />
-                  <Input
-                    placeholder="Description"
-                    value={newCourse.description}
-                    onChange={(e) => setNewCourse({...newCourse, description: e.target.value})}
-                    className="glassmorphic border-white/20"
-                    required
-                  />
+                  <div className="md:col-span-2">
+                    <Textarea
+                      placeholder="Course description"
+                      value={newCourse.description}
+                      onChange={(e) => setNewCourse({...newCourse, description: e.target.value})}
+                      className="glassmorphic border-white/20"
+                      rows={3}
+                      required
+                    />
+                  </div>
                   <Input
                     type="number"
                     placeholder="Credits"

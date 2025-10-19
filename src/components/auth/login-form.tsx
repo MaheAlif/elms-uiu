@@ -104,7 +104,6 @@ export function LoginForm({ showBackground = false, className = "" }: LoginFormP
                   <Button 
                     variant="outline" 
                     className={`w-full justify-between glassmorphic hover:glow-cyan ${showBackground ? 'backdrop-blur-md border-white/20' : ''}`}
-                    data-testid="role-dropdown-trigger"
                   >
                     <div className="flex items-center space-x-2">
                       {selectedRoleData && (
@@ -123,7 +122,6 @@ export function LoginForm({ showBackground = false, className = "" }: LoginFormP
                       key={role.value}
                       onClick={() => setSelectedRole(role.value as 'student' | 'teacher' | 'admin')}
                       className="flex items-center space-x-2 cursor-pointer"
-                      data-testid={`role-option-${role.value}`}
                     >
                       <role.icon className={`w-4 h-4 ${role.color}`} />
                       <span>{role.label}</span>
@@ -148,7 +146,6 @@ export function LoginForm({ showBackground = false, className = "" }: LoginFormP
                 onChange={(e) => setEmail(e.target.value)}
                 className={`glassmorphic border-white/20 focus:border-cyan-500/50 ${showBackground ? 'backdrop-blur-md' : ''}`}
                 required
-                data-testid="login-email"
               />
             </div>
 
@@ -162,7 +159,6 @@ export function LoginForm({ showBackground = false, className = "" }: LoginFormP
                 onChange={(e) => setPassword(e.target.value)}
                 className={`glassmorphic border-white/20 focus:border-cyan-500/50 ${showBackground ? 'backdrop-blur-md' : ''}`}
                 required
-                data-testid="login-password"
               />
             </div>
 
@@ -171,7 +167,6 @@ export function LoginForm({ showBackground = false, className = "" }: LoginFormP
               type="submit"
               className={`w-full glassmorphic hover:glow-green ${showBackground ? 'backdrop-blur-md' : ''}`}
               disabled={isLoading}
-              data-testid="login-submit"
             >
               {isLoading ? (
                 <div className="flex items-center space-x-2">

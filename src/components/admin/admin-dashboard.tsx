@@ -23,7 +23,7 @@ export function AdminDashboard() {
     description: "",
     credits: "3",
     semester: "Fall",
-    academicYear: "2024-2025",
+    academicYear: "2025-2026",
   })
 
   // Teacher form state
@@ -64,7 +64,7 @@ export function AdminDashboard() {
       semester: courseForm.semester,
       academic_year: courseForm.academicYear,
     })
-    setCourseForm({ name: "", code: "", description: "", credits: "3", semester: "Fall", academicYear: "2024-2025" })
+    setCourseForm({ name: "", code: "", description: "", credits: "3", semester: "Fall", academicYear: "2025-2026" })
     await load()
   }
 
@@ -120,91 +120,31 @@ export function AdminDashboard() {
           <div className="grid md:grid-cols-2 gap-4">
             <Card className="glassmorphic">
               <CardHeader>
-                <CardTitle>Create New Course</CardTitle>
-                <CardDescription>Add a new course to the system</CardDescription>
+                <CardTitle>Create Course</CardTitle>
+                <CardDescription>Fill details and create a new course</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Course name</label>
-                  <Input 
-                    placeholder="Enter course name" 
-                    value={courseForm.name} 
-                    onChange={e=>setCourseForm({...courseForm, name:e.target.value})} 
-                    data-testid="course-name-input"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Course code (e.g., CSE-401)</label>
-                  <Input 
-                    placeholder="Enter course code" 
-                    value={courseForm.code} 
-                    onChange={e=>setCourseForm({...courseForm, code:e.target.value})} 
-                    data-testid="course-code-input"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Description</label>
-                  <Input 
-                    placeholder="Enter course description" 
-                    value={courseForm.description} 
-                    onChange={e=>setCourseForm({...courseForm, description:e.target.value})} 
-                    data-testid="course-description-input"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">credit</label>
-                  <Input 
-                    type="number" 
-                    placeholder="3" 
-                    value={courseForm.credits} 
-                    onChange={e=>setCourseForm({...courseForm, credits:e.target.value})} 
-                    data-testid="course-credits-input"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">trimester</label>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="justify-between w-full" data-testid="course-semester-dropdown">
-                        {courseForm.semester}
-                        <ChevronDown className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="glassmorphic">
-                      {['Fall','Spring','Summer'].map(s => (
-                        <DropdownMenuItem 
-                          key={s} 
-                          onClick={()=>setCourseForm({...courseForm, semester:s})} 
-                          data-testid={`semester-${s.toLowerCase()}`}
-                        >
-                          {s}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">year</label>
-                  <Input 
-                    placeholder="2024-2025" 
-                    value={courseForm.academicYear} 
-                    onChange={e=>setCourseForm({...courseForm, academicYear:e.target.value})} 
-                    data-testid="course-academic-year-input"
-                  />
-                </div>
-
-                <Button 
-                  onClick={createCourse} 
-                  className="w-full" 
-                  data-testid="create-course-submit-btn"
-                >
-                  Create Course
-                </Button>
+              <CardContent className="space-y-3">
+                <Input placeholder="Course Name" value={courseForm.name} onChange={e=>setCourseForm({...courseForm, name:e.target.value})} data-testid="course-name-input"/>
+                <Input placeholder="Course Code" value={courseForm.code} onChange={e=>setCourseForm({...courseForm, code:e.target.value})} data-testid="course-code-input"/>
+                <Input placeholder="Description" value={courseForm.description} onChange={e=>setCourseForm({...courseForm, description:e.target.value})} data-testid="course-description-input"/>
+                <Input type="number" placeholder="Credits" value={courseForm.credits} onChange={e=>setCourseForm({...courseForm, credits:e.target.value})} data-testid="course-credits-input"/>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="justify-between w-full" data-testid="course-semester-dropdown">
+                      {courseForm.semester}
+                      <ChevronDown className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="glassmorphic">
+                    {['Fall','Spring','Summer'].map(s => (
+                      <DropdownMenuItem key={s} onClick={()=>setCourseForm({...courseForm, semester:s})} data-testid={`semester-${s.toLowerCase()}`}>
+                        {s}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Input placeholder="Academic Year (e.g., 2025-2026)" value={courseForm.academicYear} onChange={e=>setCourseForm({...courseForm, academicYear:e.target.value})} data-testid="course-academic-year-input"/>
+                <Button onClick={createCourse} className="w-full" data-testid="create-course-submit-btn">Create Course</Button>
               </CardContent>
             </Card>
 
